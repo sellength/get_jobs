@@ -1,91 +1,70 @@
 package getjobs.modules.liepin.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
-/**
- * 猎聘API响应数据结构
- *
- * @author getjobs
- */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LiePinApiResponse {
+    private int flag;
+    private DataWrapper data;
 
-    @JsonProperty("code")
-    private Integer code;
-
-    @JsonProperty("data")
-    private LiePinData data;
-
-    /**
-     * 主要数据包装类
-     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LiePinData {
-        @JsonProperty("count")
-        private Integer count;
-
-        @JsonProperty("list")
-        private List<LiePinJobItem> list;
+    public static class DataWrapper {
+        private DataInner data;
     }
 
-    /**
-     * 职位信息项
-     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LiePinJobItem {
-        @JsonProperty("jobId")
-        private String jobId;
+    public static class DataInner {
+        private List<JobCard> jobCardList;
+    }
 
-        @JsonProperty("jobTitle")
-        private String jobTitle;
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class JobCard {
+        private Comp comp;
+        private Job job;
+        private Recruiter recruiter;
+    }
 
-        @JsonProperty("salary")
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Comp {
+        private String compIndustry;
+        private Integer compId;
+        private String compName;
+        private String compScale;
+        private String compStage;
+        private String compLogo;
+        private String link;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Job {
+        private List<String> labels;
+        private String title;
+        private String refreshTime;
         private String salary;
+        private String jobKind;
+        private String jobId;
+        private String dq;
+        private String link;
+        private String requireEduLevel;
+        private String requireWorkYears;
+    }
 
-        @JsonProperty("city")
-        private String city;
-
-        @JsonProperty("education")
-        private String education;
-
-        @JsonProperty("experience")
-        private String experience;
-
-        @JsonProperty("publishTime")
-        private String publishTime;
-
-        @JsonProperty("positionUrl")
-        private String positionUrl;
-
-        // 公司信息
-        @JsonProperty("companyId")
-        private String companyId;
-
-        @JsonProperty("companyName")
-        private String companyName;
-
-        @JsonProperty("companyLogo")
-        private String companyLogo;
-
-        @JsonProperty("companyScale")
-        private String companyScale;
-
-        @JsonProperty("industry")
-        private String industry;
-
-        // HR信息
-        @JsonProperty("hrName")
-        private String hrName;
-
-        @JsonProperty("hrTitle")
-        private String hrTitle;
-
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Recruiter {
+        private String recruiterId;
+        private String recruiterName;
+        private String recruiterTitle;
+        private String imShowText;
+        private String recruiterPhoto;
     }
 }

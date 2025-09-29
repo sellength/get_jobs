@@ -45,6 +45,9 @@ public class ConfigEntity extends BaseEntity {
     @Column(name = "salary", length = 50)
     private String salary;
 
+    @Column(name = "publish_time", length = 50)
+    private String publishTime;
+
     @Column(name = "expected_position", length = 200)
     private String expectedPosition;
 

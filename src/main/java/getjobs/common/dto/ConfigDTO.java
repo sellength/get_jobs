@@ -20,6 +20,7 @@ public class ConfigDTO {
     private String keywords;
     private String cityCode;
     private String industry;
+    private String publishTime;
 
     // 单/多选原始字符串（来自表单/配置）
     private String experience;
@@ -139,6 +140,7 @@ public class ConfigDTO {
         if (entity.getStage() != null) {
             dto.setStage(String.join(",", entity.getStage()));
         }
+        dto.setPublishTime(entity.getPublishTime());
         // 注意：需要在ConfigEntity中添加companyType字段
         // if (entity.getCompanyType() != null) {
         //     dto.setCompanyType(String.join(",", entity.getCompanyType()));

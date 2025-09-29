@@ -4,11 +4,14 @@ import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.modules.liepin.service.playwright.LiePinApiMonitorService;
 import getjobs.service.RecruitmentService;
 import getjobs.utils.PlaywrightUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,7 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LiepinRecruitmentServiceImpl implements RecruitmentService {
+
+    private final LiePinApiMonitorService liePinApiMonitorService;
 
     private static final String HOME_URL = RecruitmentPlatformEnum.LIEPIN.getHomeUrl();
     private static final String SEARCH_JOB_URL = "https://www.liepin.com/zhaopin/?";
@@ -25,6 +31,11 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     @Override
     public RecruitmentPlatformEnum getPlatform() {
         return RecruitmentPlatformEnum.LIEPIN;
+    }
+
+    @PostConstruct
+    public void init() {
+        liePinApiMonitorService.init();
     }
 
     @Override
@@ -139,8 +150,41 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
             url.append("key=").append(URLEncoder.encode(keyword, StandardCharsets.UTF_8));
             if (cityCode != null && !cityCode.trim().isEmpty()) {
                 url.append("&city=").append(cityCode);
+                url.append("&dq=").append(cityCode);
             }
-            // 其他参数...
+            if (config.getPublishTime() != null) {
+                url.append("&pubTime=").append(config.getPublishTime());
+            }
+            url.append("&currentPage=").append(0); // 从第一页开始
+            url.append("&pageSize=").append(40);
+
+            if (config.getExperience() != null && !config.getExperience().isEmpty()) {
+                url.append("&workYearCode=").append(config.getExperience());
+            }
+            if (config.getIndustry() != null && !config.getIndustry().isEmpty()) {
+                url.append("&industry=").append(URLEncoder.encode(config.getIndustry(), StandardCharsets.UTF_8));
+            }
+            if (config.getSalary() != null && !config.getSalary().isEmpty()) {
+                url.append("&salaryCode=").append(config.getSalary());
+            }
+            if (config.getJobType() != null && !config.getJobType().isEmpty()) {
+                url.append("&jobKind=").append(config.getJobType());
+            }
+            if (config.getScale() != null && !config.getScale().isEmpty()) {
+                url.append("&compScale=").append(config.getScale());
+            }
+            if (config.getCompanyType() != null && !config.getCompanyType().isEmpty()) {
+                url.append("&compKind=").append(config.getCompanyType());
+            }
+            if (config.getStage() != null && !config.getStage().isEmpty()) {
+                url.append("&compStage=").append(config.getStage());
+            }
+            if (config.getDegree() != null && !config.getDegree().isEmpty()) {
+                url.append("&eduLevel=").append(config.getDegree());
+            }
+            url.append("&sfrom=search_job_pc");
+            url.append("&scene=condition");
+
         } catch (Exception e) {
             log.error("构建搜索URL失败", e);
         }
