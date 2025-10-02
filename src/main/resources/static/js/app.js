@@ -191,6 +191,88 @@ class BossConfigApp {
 
 }
 
+class TaskStatusUpdater {
+    constructor(platforms, interval = 3000) {
+        this.platforms = platforms;
+        this.interval = interval;
+        this.timer = null;
+    }
+
+    startPolling() {
+        this.stopPolling();
+        this.pollStatus(); // Poll immediately
+        this.timer = setInterval(() => this.pollStatus(), this.interval);
+        console.log('Task status polling started.');
+    }
+
+    stopPolling() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+            console.log('Task status polling stopped.');
+        }
+    }
+
+    async pollStatus() {
+        try {
+            const response = await fetch('/api/tasks/status');
+            if (!response.ok) {
+                console.error('Failed to fetch task statuses:', response.statusText);
+                return;
+            }
+            const statuses = await response.json();
+            this.updateUI(statuses);
+        } catch (error) {
+            console.error('Error polling task statuses:', error);
+        }
+    }
+
+    updateUI(statuses) {
+        for (const key in statuses) {
+            const statusInfo = statuses[key];
+            const { platform, stage, status, message, count } = statusInfo;
+
+            const platformPrefix = this.platforms[platform];
+            if (!platformPrefix) continue;
+
+            let stageId;
+            if (platform === 'BOSS_ZHIPIN') {
+                // Boss platform has a simpler ID structure
+                stageId = `${stage.toLowerCase()}Status`;
+            } else {
+                stageId = `${platformPrefix.toLowerCase()}${stage.charAt(0) + stage.slice(1).toLowerCase()}Status`;
+            }
+            const statusElement = document.getElementById(stageId);
+
+            if (statusElement) {
+                let statusText = `${message}`;
+                if (count > 0) {
+                    statusText += ` (${count})`;
+                }
+                statusElement.textContent = statusText;
+
+                statusElement.className = 'badge ms-2'; // Reset classes
+                switch (status) {
+                    case 'STARTED':
+                        statusElement.classList.add('bg-primary', 'text-white');
+                        break;
+                    case 'IN_PROGRESS':
+                        statusElement.classList.add('bg-info', 'text-dark');
+                        break;
+                    case 'COMPLETED':
+                        statusElement.classList.add('bg-success', 'text-white');
+                        break;
+                    case 'FAILED':
+                        statusElement.classList.add('bg-danger', 'text-white');
+                        break;
+                    default:
+                        statusElement.classList.add('bg-light', 'text-dark');
+                }
+            }
+        }
+    }
+}
+
 // 页面加载完成后初始化应用（原配置表单/记录页逻辑）
 document.addEventListener('DOMContentLoaded', () => {
     // 先初始化Boss配置表单（负责字典加载与事件分发）
@@ -417,6 +499,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
         console.error('初始化猎聘岗位明细Vue应用失败:', error);
     }
+
+    const platforms = {
+        'BOSS_ZHIPIN': 'boss',
+        'ZHILIAN_ZHAOPIN': 'zhilian',
+        'JOB51': 'job51',
+        'LIEPIN': 'liepin'
+    };
+    const taskStatusUpdater = new TaskStatusUpdater(platforms);
+    taskStatusUpdater.startPolling();
 });
 
 

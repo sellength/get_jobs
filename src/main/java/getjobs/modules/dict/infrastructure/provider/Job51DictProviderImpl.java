@@ -2,7 +2,7 @@ package getjobs.modules.dict.infrastructure.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.config.Job51DictConfig;
+import getjobs.modules.dict.config.Job51DictConfig;
 import getjobs.modules.dict.api.DictBundle;
 import getjobs.modules.dict.api.DictGroup;
 import getjobs.modules.dict.api.DictGroupKey;

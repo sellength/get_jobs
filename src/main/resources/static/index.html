@@ -2496,8 +2496,34 @@
 <script src="js/views/job51-records-vue.js"></script>
 <script src="js/views/liepin-config-form.js"></script>
 <script src="js/views/liepin-records-vue.js"></script>
+<script src="js/views/ai-prompt.js"></script>
 <!-- App Entrypoint -->
 <script src="js/app.js"></script>
+
+<!-- AI Prompt Floating Panel -->
+<div id="aiPromptPanel" class="ai-prompt-panel">
+    <div class="ai-prompt-handle">
+        <i class="bi bi-robot"></i>
+    </div>
+    <div class="ai-prompt-content">
+        <h5>
+            <i class="bi bi-pencil-square me-2"></i>
+            自定义AI提示词
+        </h5>
+        <div class="mb-3">
+            <label for="jobMatchDescription" class="form-label">岗位匹配提示词</label>
+            <div class="form-control" style="height: auto; background-color: #f8f9fa;">
+                帮我根据职位描述判断对应职位是否匹配我的岗位，我需要做
+                <input type="text" id="jobMatchDescription" class="form-control form-control-sm d-inline-block" style="width: 150px;" placeholder="例如: Java后端开发">
+                工作，给我返回是否匹配即可，是返回true，否返回false
+                <br><br>
+                职位描述如下：
+            </div>
+            <textarea id="jobMatchPrompt" style="display:none;"></textarea>
+        </div>
+        <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">保存</button>
+    </div>
+</div>
 
 <!-- Toast Container -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">

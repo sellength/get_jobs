@@ -182,38 +182,6 @@ public class Job51TaskController {
         }
     }
 
-    /**
-     * 查询任务状态接口
-     * GET /api/job51/task/status/{taskId}
-     * 
-     * @param taskId 任务ID
-     * @return 任务状态
-     */
-    @GetMapping("/status/{taskId}")
-    public ResponseEntity<Map<String, Object>> getTaskStatus(@PathVariable String taskId) {
-        try {
-            Job51TaskService.TaskStatus status = job51TaskService.getTaskStatus(taskId);
-
-            Map<String, Object> response = new HashMap<>();
-            if (status != null) {
-                response.put("success", true);
-                response.put("taskId", taskId);
-                response.put("status", status.name());
-            } else {
-                response.put("success", false);
-                response.put("message", "任务不存在");
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("查询任务状态异常，任务ID: {}", taskId, e);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "查询状态异常: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
 
 
     // 请求DTO类

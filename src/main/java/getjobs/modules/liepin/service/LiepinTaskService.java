@@ -8,10 +8,15 @@ import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import getjobs.service.JobService;
 import getjobs.service.PlaywrightManager;
+import getjobs.modules.task.dto.TaskUpdatePayload;
+import getjobs.modules.task.enums.TaskStage;
+import getjobs.modules.task.enums.TaskStatus;
+import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.service.RecruitmentService;
 import getjobs.service.RecruitmentServiceFactory;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -36,18 +41,17 @@ public class LiepinTaskService {
     private final JobService jobService;
 
     private final JobRepository jobRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private String dataPath;
 
-    private final ConcurrentHashMap<String, TaskStatus> taskStatusMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Date> taskStartTimeMap = new ConcurrentHashMap<>();
-
     public LiepinTaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
-            JobService jobService, JobRepository jobRepository) {
+            JobService jobService, JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
         this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostConstruct
@@ -60,32 +64,27 @@ public class LiepinTaskService {
     }
 
     public LoginResult login(ConfigDTO config) {
-        String taskId = generateTaskId("login");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
-            log.info("开始执行猎聘登录操作，任务ID: {}", taskId);
+            log.info("开始执行猎聘登录操作");
             playwrightManager.ensureInitialized();
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
             boolean success = liepinService.login(config);
 
             LoginResult result = new LoginResult();
-            result.setTaskId(taskId);
             result.setSuccess(success);
             result.setMessage(success ? "登录成功" : "登录失败");
             result.setTimestamp(new Date());
 
-            taskStatusMap.put(taskId, success ? TaskStatus.COMPLETED : TaskStatus.FAILED);
-            log.info("猎聘登录操作完成，任务ID: {}, 结果: {}", taskId, success ? "成功" : "失败");
+            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0, result.getMessage());
+            log.info("猎聘登录操作完成，结果: {}", success ? "成功" : "失败");
             return result;
 
         } catch (Exception e) {
-            log.error("猎聘登录操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("猎聘登录操作执行失败", e);
+            publishTaskUpdate(TaskStage.LOGIN, TaskStatus.FAILURE, 0, "登录异常: " + e.getMessage());
 
             LoginResult result = new LoginResult();
-            result.setTaskId(taskId);
             result.setSuccess(false);
             result.setMessage("登录异常: " + e.getMessage());
             result.setTimestamp(new Date());
@@ -94,15 +93,16 @@ public class LiepinTaskService {
     }
 
     public CollectResult collectJobs(ConfigDTO config) {
-        String taskId = generateTaskId("collect");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
-            log.info("开始执行猎聘岗位采集操作，任务ID: {}", taskId);
+            log.info("开始执行猎聘岗位采集操作");
             playwrightManager.ensureInitialized();
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
+
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集岗位");
             List<JobDTO> allJobDTOS = liepinService.collectJobs(config);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
+
 
             int savedCount = 0;
             if (!allJobDTOS.isEmpty()) {
@@ -115,22 +115,21 @@ public class LiepinTaskService {
             }
 
             CollectResult result = new CollectResult();
-            result.setTaskId(taskId);
             result.setJobCount(allJobDTOS.size());
             result.setJobs(allJobDTOS);
-            result.setMessage(String.format("成功采集到 %d 个岗位，保存到数据库 %d 个", allJobDTOS.size(), savedCount));
+            String message = String.format("成功采集到 %d 个岗位，保存到数据库 %d 个", allJobDTOS.size(), savedCount);
+            result.setMessage(message);
             result.setTimestamp(new Date());
 
-            taskStatusMap.put(taskId, TaskStatus.COMPLETED);
-            log.info("猎聘岗位采集操作完成，任务ID: {}, 采集到 {} 个岗位，保存到数据库 {} 个", taskId, allJobDTOS.size(), savedCount);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.SUCCESS, allJobDTOS.size(), message);
+            log.info("猎聘岗位采集操作完成，采集到 {} 个岗位，保存到数据库 {} 个", allJobDTOS.size(), savedCount);
             return result;
 
         } catch (Exception e) {
-            log.error("猎聘岗位采集操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("猎聘岗位采集操作执行失败", e);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.FAILURE, 0, "采集异常: " + e.getMessage());
 
             CollectResult result = new CollectResult();
-            result.setTaskId(taskId);
             result.setJobCount(0);
             result.setJobs(new ArrayList<>());
             result.setMessage("采集异常: " + e.getMessage());
@@ -140,6 +139,7 @@ public class LiepinTaskService {
     }
 
     public FilterResult filterJobs(ConfigDTO config) {
+        publishTaskUpdate(TaskStage.FILTER, TaskStatus.STARTED, 0, "开始过滤");
         try {
             log.info("开始执行猎聘岗位过滤操作");
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
@@ -164,14 +164,18 @@ public class LiepinTaskService {
             result.setOriginalCount(allJobEntities.size());
             result.setFilteredCount(filteredJobDTOS.size());
             result.setJobs(filteredJobDTOS);
-            result.setMessage(String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个", allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size()));
+            String message = String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个", allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+            result.setMessage(message);
             result.setTimestamp(new Date());
+
+            publishTaskUpdate(TaskStage.FILTER, TaskStatus.SUCCESS, filteredJobDTOS.size(), message);
 
             log.info("猎聘岗位过滤操作完成，原始 {} 个，过滤后 {} 个，已过滤 {} 个", allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
             return result;
 
         } catch (Exception e) {
             log.error("猎聘岗位过滤操作执行失败", e);
+            publishTaskUpdate(TaskStage.FILTER, TaskStatus.FAILURE, 0, "过滤异常: " + e.getMessage());
             FilterResult result = new FilterResult();
             result.setOriginalCount(0);
             result.setFilteredCount(0);
@@ -183,12 +187,9 @@ public class LiepinTaskService {
     }
 
     public DeliveryResult deliverJobs(ConfigDTO config, boolean enableActualDelivery) {
-        String taskId = generateTaskId("deliver");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.DELIVER, TaskStatus.STARTED, 0, "开始投递");
         try {
-            log.info("开始执行猎聘岗位投递操作，任务ID: {}, 实际投递: {}", taskId, enableActualDelivery);
+            log.info("开始执行猎聘岗位投递操作，实际投递: {}", enableActualDelivery);
             List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(JobStatusEnum.PENDING.getCode(), RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
             if (jobEntities == null || jobEntities.isEmpty()) {
                 throw new IllegalArgumentException("未找到可投递的猎聘岗位记录");
@@ -208,27 +209,26 @@ public class LiepinTaskService {
             }
 
             DeliveryResult result = new DeliveryResult();
-            result.setTaskId(taskId);
             result.setTotalCount(filteredJobDTOS.size());
             result.setDeliveredCount(deliveredCount);
             result.setActualDelivery(enableActualDelivery);
-            result.setMessage(String.format("%s完成，处理 %d 个岗位", enableActualDelivery ? "实际投递" : "模拟投递", deliveredCount));
+            String message = String.format("%s完成，处理 %d 个岗位", enableActualDelivery ? "实际投递" : "模拟投递", deliveredCount);
+            result.setMessage(message);
             result.setTimestamp(new Date());
 
             if (filteredJobDTOS.size() <= 10) {
                 result.setJobDetails(buildJobDetails(filteredJobDTOS));
             }
 
-            taskStatusMap.put(taskId, TaskStatus.COMPLETED);
-            log.info("猎聘岗位投递操作完成，任务ID: {}, 处理 {} 个岗位", taskId, deliveredCount);
+            publishTaskUpdate(TaskStage.DELIVER, TaskStatus.SUCCESS, deliveredCount, message);
+            log.info("猎聘岗位投递操作完成，处理 {} 个岗位", deliveredCount);
             return result;
 
         } catch (Exception e) {
-            log.error("猎聘岗位投递操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("猎聘岗位投递操作执行失败", e);
+            publishTaskUpdate(TaskStage.DELIVER, TaskStatus.FAILURE, 0, "投递异常: " + e.getMessage());
 
             DeliveryResult result = new DeliveryResult();
-            result.setTaskId(taskId);
             result.setTotalCount(0);
             result.setDeliveredCount(0);
             result.setActualDelivery(enableActualDelivery);
@@ -238,17 +238,15 @@ public class LiepinTaskService {
         }
     }
 
-    public TaskStatus getTaskStatus(String taskId) {
-        return taskStatusMap.get(taskId);
-    }
-
-    public void clearTaskData(String taskId) {
-        taskStatusMap.remove(taskId);
-        taskStartTimeMap.remove(taskId);
-    }
-
-    private String generateTaskId(String operation) {
-        return operation + "_" + System.currentTimeMillis();
+    private void publishTaskUpdate(TaskStage stage, TaskStatus status, Integer count, String message) {
+        TaskUpdatePayload payload = TaskUpdatePayload.builder()
+                .platform(RecruitmentPlatformEnum.LIEPIN)
+                .stage(stage)
+                .status(status)
+                .count(count)
+                .message(message)
+                .build();
+        eventPublisher.publishEvent(new TaskUpdateEvent(this, payload));
     }
 
     private List<String> buildJobDetails(List<JobDTO> jobDTOS) {
@@ -269,10 +267,6 @@ public class LiepinTaskService {
             dataDir.mkdirs();
         }
         dataPath = dataDir.getAbsolutePath();
-    }
-
-    public enum TaskStatus {
-        RUNNING, COMPLETED, FAILED
     }
 
     public static class LoginResult {

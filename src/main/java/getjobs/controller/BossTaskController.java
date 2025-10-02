@@ -183,66 +183,7 @@ public class BossTaskController {
         }
     }
 
-    /**
-     * 查询任务状态接口
-     * GET /api/boss/task/status/{taskId}
-     * 
-     * @param taskId 任务ID
-     * @return 任务状态
-     */
-    @GetMapping("/status/{taskId}")
-    public ResponseEntity<Map<String, Object>> getTaskStatus(@PathVariable String taskId) {
-        try {
-            BossTaskService.TaskStatus status = bossTaskService.getTaskStatus(taskId);
 
-            Map<String, Object> response = new HashMap<>();
-            if (status != null) {
-                response.put("success", true);
-                response.put("taskId", taskId);
-                response.put("status", status.name());
-            } else {
-                response.put("success", false);
-                response.put("message", "任务不存在");
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("查询任务状态异常，任务ID: {}", taskId, e);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "查询状态异常: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
-
-    /**
-     * 清理任务数据接口
-     * DELETE /api/boss/task/{taskId}
-     * 
-     * @param taskId 任务ID
-     * @return 清理结果
-     */
-    @DeleteMapping("/{taskId}")
-    public ResponseEntity<Map<String, Object>> clearTask(@PathVariable String taskId) {
-        try {
-            bossTaskService.clearTaskData(taskId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "任务数据清理成功");
-
-            log.info("任务数据清理成功，任务ID: {}", taskId);
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("清理任务数据异常，任务ID: {}", taskId, e);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "清理异常: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
 
     // 请求DTO类
     public static class FilterRequest {

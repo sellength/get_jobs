@@ -37,6 +37,7 @@ public enum DictGroupKey {
     }
 
     public static DictGroupKey fromKey(String key) {
+
         return Arrays.stream(values())
                 .filter(e -> e.key.equalsIgnoreCase(key))
                 .findFirst()

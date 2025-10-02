@@ -16,13 +16,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * 为每个招聘平台提供独立的BrowserContext和Page。
  */
 @Slf4j
-//@Service
+@Service
 public class PlaywrightService {
 
     private Playwright playwright;
     private Browser browser;
 
-    private final Map<RecruitmentPlatformEnum, BrowserContext> contextMap = new ConcurrentHashMap<>();
+    private BrowserContext context;
     private final Map<RecruitmentPlatformEnum, Page> pageMap = new ConcurrentHashMap<>();
 
     private static final int DEFAULT_TIMEOUT = 30000;
@@ -59,12 +59,12 @@ public class PlaywrightService {
                             "--disable-ipc-flooding-protection"
                     )));
 
+            context = createNewContext();
             for (RecruitmentPlatformEnum platform : RecruitmentPlatformEnum.values()) {
-                BrowserContext context = createNewContext();
                 Page page = createNewPage(context);
-                contextMap.put(platform, context);
+                page.navigate(platform.getHomeUrl());
                 pageMap.put(platform, page);
-                log.info("Initialized context and page for platform: {}", platform.getPlatformName());
+                log.info("Initialized page for platform: {}, url: {}", platform.getPlatformName(), platform.getHomeUrl());
             }
 
             log.info("Playwright service initialized successfully.");
@@ -103,7 +103,10 @@ public class PlaywrightService {
     public void close() {
         log.info("Closing Playwright service...");
         pageMap.values().forEach(Page::close);
-        contextMap.values().forEach(BrowserContext::close);
+
+        if (context != null) {
+            context.close();
+        }
 
         if (browser != null) {
             browser.close();
@@ -119,16 +122,15 @@ public class PlaywrightService {
     }
 
     public BrowserContext getContext(RecruitmentPlatformEnum platform) {
-        return contextMap.get(platform);
+        return context;
     }
 
     public void addCookies(RecruitmentPlatformEnum platform, List<Cookie> cookies) {
-        BrowserContext context = getContext(platform);
         if (context != null) {
             context.addCookies(cookies);
             log.info("Added cookies for platform: {}", platform.getPlatformName());
         } else {
-            log.warn("BrowserContext not found for platform: {}", platform.getPlatformName());
+            log.warn("BrowserContext not initialized");
         }
     }
 

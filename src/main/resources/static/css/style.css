@@ -1123,3 +1123,50 @@ body {
         display: none;
     }
 }
+
+/* AI Prompt Floating Panel */
+.ai-prompt-panel {
+    position: fixed;
+    top: 50%;
+    right: -350px; /* Initially hidden */
+    width: 380px;
+    transform: translateY(-50%);
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px 0 0 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: right 0.4s ease-in-out;
+    z-index: 1050;
+}
+
+.ai-prompt-panel.show {
+    right: 0; /* Slides into view */
+}
+
+.ai-prompt-handle {
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 60px;
+    background-color: #667eea;
+    border-radius: 8px 0 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 24px;
+    box-shadow: -5px 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ai-prompt-content {
+    padding: 20px;
+}
+
+.ai-prompt-content h5 {
+    color: #4a5568;
+    font-weight: 600;
+    margin-bottom: 16px;
+}

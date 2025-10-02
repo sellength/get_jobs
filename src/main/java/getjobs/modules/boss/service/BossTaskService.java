@@ -9,8 +9,13 @@ import getjobs.repository.JobRepository;
 import getjobs.service.JobService;
 import getjobs.service.PlaywrightManager;
 import getjobs.service.RecruitmentService;
+import getjobs.modules.task.dto.TaskUpdatePayload;
+import getjobs.modules.task.enums.TaskStage;
+import getjobs.modules.task.enums.TaskStatus;
+import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.service.RecruitmentServiceFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -38,20 +43,18 @@ public class BossTaskService {
     private final JobService jobService;
 
     private final JobRepository jobRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 数据目录路径
     private String dataPath;
 
-    // 存储任务执行状态和结果
-    private final ConcurrentHashMap<String, TaskStatus> taskStatusMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Date> taskStartTimeMap = new ConcurrentHashMap<>();
-
     public BossTaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
-            JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService) {
+            JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService, ApplicationEventPublisher eventPublisher) {
         this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostConstruct
@@ -70,12 +73,9 @@ public class BossTaskService {
      * @return 登录结果
      */
     public LoginResult login(ConfigDTO config) {
-        String taskId = generateTaskId("login");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
-            log.info("开始执行登录操作，任务ID: {}", taskId);
+            log.info("开始执行登录操作");
 
             // 确保Playwright已初始化
             playwrightManager.ensureInitialized();
@@ -87,22 +87,20 @@ public class BossTaskService {
             boolean success = bossService.login(config);
 
             LoginResult result = new LoginResult();
-            result.setTaskId(taskId);
             result.setSuccess(success);
             result.setMessage(success ? "登录成功" : "登录失败");
             result.setTimestamp(new Date());
 
-            taskStatusMap.put(taskId, success ? TaskStatus.COMPLETED : TaskStatus.FAILED);
+            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0, result.getMessage());
 
-            log.info("登录操作完成，任务ID: {}, 结果: {}", taskId, success ? "成功" : "失败");
+            log.info("登录操作完成，结果: {}", success ? "成功" : "失败");
             return result;
 
         } catch (Exception e) {
-            log.error("登录操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("登录操作执行失败", e);
+            publishTaskUpdate(TaskStage.LOGIN, TaskStatus.FAILURE, 0, "登录异常: " + e.getMessage());
 
             LoginResult result = new LoginResult();
-            result.setTaskId(taskId);
             result.setSuccess(false);
             result.setMessage("登录异常: " + e.getMessage());
             result.setTimestamp(new Date());
@@ -117,12 +115,9 @@ public class BossTaskService {
      * @return 采集结果
      */
     public CollectResult collectJobs(ConfigDTO config) {
-        String taskId = generateTaskId("collect");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
-            log.info("开始执行岗位采集操作，任务ID: {}", taskId);
+            log.info("开始执行岗位采集操作");
 
             // 确保Playwright已初始化
             playwrightManager.ensureInitialized();
@@ -134,13 +129,17 @@ public class BossTaskService {
             List<JobDTO> allJobDTOS = new ArrayList<>();
 
             // 采集搜索岗位
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集搜索岗位");
             List<JobDTO> searchJobDTOS = bossService.collectJobs(config);
             allJobDTOS.addAll(searchJobDTOS);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个搜索岗位");
 
             // 采集推荐岗位（如果配置开启）
             if (config.getRecommendJobs()) {
+                publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "正在采集推荐岗位");
                 List<JobDTO> recommendJobDTOS = bossService.collectRecommendJobs(config);
                 allJobDTOS.addAll(recommendJobDTOS);
+                publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
             }
 
             // 保存到数据库
@@ -156,23 +155,22 @@ public class BossTaskService {
             }
 
             CollectResult result = new CollectResult();
-            result.setTaskId(taskId);
             result.setJobCount(allJobDTOS.size());
             result.setJobs(allJobDTOS);
-            result.setMessage(String.format("成功采集到 %d 个岗位，保存到数据库 %d 个", allJobDTOS.size(), savedCount));
+            String message = String.format("成功采集到 %d 个岗位，保存到数据库 %d 个", allJobDTOS.size(), savedCount);
+            result.setMessage(message);
             result.setTimestamp(new Date());
 
-            taskStatusMap.put(taskId, TaskStatus.COMPLETED);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.SUCCESS, allJobDTOS.size(), message);
 
-            log.info("岗位采集操作完成，任务ID: {}, 采集到 {} 个岗位，保存到数据库 {} 个", taskId, allJobDTOS.size(), savedCount);
+            log.info("岗位采集操作完成，采集到 {} 个岗位，保存到数据库 {} 个", allJobDTOS.size(), savedCount);
             return result;
 
         } catch (Exception e) {
-            log.error("岗位采集操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("岗位采集操作执行失败", e);
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.FAILURE, 0, "采集异常: " + e.getMessage());
 
             CollectResult result = new CollectResult();
-            result.setTaskId(taskId);
             result.setJobCount(0);
             result.setJobs(new ArrayList<>());
             result.setMessage("采集异常: " + e.getMessage());
@@ -188,6 +186,7 @@ public class BossTaskService {
      * @return 过滤结果
      */
     public FilterResult filterJobs(ConfigDTO config) {
+        publishTaskUpdate(TaskStage.FILTER, TaskStatus.STARTED, 0, "开始过滤");
         try {
             log.info("开始执行岗位过滤操作");
 
@@ -238,13 +237,15 @@ public class BossTaskService {
             }
 
             FilterResult result = new FilterResult();
-            result.setTaskId(null); // 不再使用任务ID
             result.setOriginalCount(allJobEntities.size());
             result.setFilteredCount(filteredJobDTOS.size());
             result.setJobs(filteredJobDTOS);
-            result.setMessage(String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个",
-                    allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size()));
+            String message = String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个",
+                    allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+            result.setMessage(message);
             result.setTimestamp(new Date());
+
+            publishTaskUpdate(TaskStage.FILTER, TaskStatus.SUCCESS, filteredJobDTOS.size(), message);
 
             log.info("岗位过滤操作完成，原始 {} 个，过滤后 {} 个，已过滤 {} 个",
                     allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
@@ -252,9 +253,9 @@ public class BossTaskService {
 
         } catch (Exception e) {
             log.error("岗位过滤操作执行失败", e);
+            publishTaskUpdate(TaskStage.FILTER, TaskStatus.FAILURE, 0, "过滤异常: " + e.getMessage());
 
             FilterResult result = new FilterResult();
-            result.setTaskId(null);
             result.setOriginalCount(0);
             result.setFilteredCount(0);
             result.setJobs(new ArrayList<>());
@@ -272,13 +273,9 @@ public class BossTaskService {
      * @return 投递结果
      */
     public DeliveryResult deliverJobs(ConfigDTO config, boolean enableActualDelivery) {
-        String taskId = generateTaskId("deliver");
-        taskStatusMap.put(taskId, TaskStatus.RUNNING);
-        taskStartTimeMap.put(taskId, new Date());
-
+        publishTaskUpdate(TaskStage.DELIVER, TaskStatus.STARTED, 0, "开始投递");
         try {
-            log.info("开始执行BOSS直聘岗位投递操作，任务ID: {}, 实际投递: {}",
-                    taskId, enableActualDelivery);
+            log.info("开始执行BOSS直聘岗位投递操作，实际投递: {}", enableActualDelivery);
 
             // 从数据库获取待处理状态的BOSS直聘平台岗位记录
             List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(
@@ -313,12 +310,12 @@ public class BossTaskService {
             }
 
             DeliveryResult result = new DeliveryResult();
-            result.setTaskId(taskId);
             result.setTotalCount(filteredJobDTOS.size());
             result.setDeliveredCount(deliveredCount);
             result.setActualDelivery(enableActualDelivery);
-            result.setMessage(String.format("%s完成，处理 %d 个岗位",
-                    enableActualDelivery ? "实际投递" : "模拟投递", deliveredCount));
+            String message = String.format("%s完成，处理 %d 个岗位",
+                    enableActualDelivery ? "实际投递" : "模拟投递", deliveredCount);
+            result.setMessage(message);
             result.setTimestamp(new Date());
 
             // 显示岗位详情
@@ -326,17 +323,16 @@ public class BossTaskService {
                 result.setJobDetails(buildJobDetails(filteredJobDTOS));
             }
 
-            taskStatusMap.put(taskId, TaskStatus.COMPLETED);
+            publishTaskUpdate(TaskStage.DELIVER, TaskStatus.SUCCESS, deliveredCount, message);
 
-            log.info("BOSS直聘岗位投递操作完成，任务ID: {}, 处理 {} 个岗位", taskId, deliveredCount);
+            log.info("BOSS直聘岗位投递操作完成，处理 {} 个岗位", deliveredCount);
             return result;
 
         } catch (Exception e) {
-            log.error("BOSS直聘岗位投递操作执行失败，任务ID: {}", taskId, e);
-            taskStatusMap.put(taskId, TaskStatus.FAILED);
+            log.error("BOSS直聘岗位投递操作执行失败", e);
+            publishTaskUpdate(TaskStage.DELIVER, TaskStatus.FAILURE, 0, "投递异常: " + e.getMessage());
 
             DeliveryResult result = new DeliveryResult();
-            result.setTaskId(taskId);
             result.setTotalCount(0);
             result.setDeliveredCount(0);
             result.setActualDelivery(enableActualDelivery);
@@ -346,28 +342,15 @@ public class BossTaskService {
         }
     }
 
-    /**
-     * 获取任务状态
-     * 
-     * @param taskId 任务ID
-     * @return 任务状态
-     */
-    public TaskStatus getTaskStatus(String taskId) {
-        return taskStatusMap.get(taskId);
-    }
-
-    /**
-     * 清理任务数据
-     * 
-     * @param taskId 任务ID
-     */
-    public void clearTaskData(String taskId) {
-        taskStatusMap.remove(taskId);
-        taskStartTimeMap.remove(taskId);
-    }
-
-    private String generateTaskId(String operation) {
-        return operation + "_" + System.currentTimeMillis();
+    private void publishTaskUpdate(TaskStage stage, TaskStatus status, Integer count, String message) {
+        TaskUpdatePayload payload = TaskUpdatePayload.builder()
+                .platform(RecruitmentPlatformEnum.BOSS_ZHIPIN)
+                .stage(stage)
+                .status(status)
+                .count(count)
+                .message(message)
+                .build();
+        eventPublisher.publishEvent(new TaskUpdateEvent(this, payload));
     }
 
     private List<String> buildJobDetails(List<JobDTO> jobDTOS) {
@@ -418,11 +401,6 @@ public class BossTaskService {
         // 更新dataPath为实际的data目录路径
         dataPath = dataDir.getAbsolutePath();
         log.info("数据文件目录设置为: {}", dataPath);
-    }
-
-    // 内部类定义
-    public enum TaskStatus {
-        RUNNING, COMPLETED, FAILED
     }
 
     public static class LoginResult {
