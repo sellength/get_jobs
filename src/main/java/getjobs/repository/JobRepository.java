@@ -107,4 +107,11 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      * @return 职位实体列表
      */
     List<JobEntity> findByPlatform(String platform);
+
+    /**
+     * 根据平台删除职位
+     *
+     * @param platform 平台名称
+     */
+    void deleteByPlatform(String platform);
 }

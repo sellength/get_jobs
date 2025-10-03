@@ -312,7 +312,9 @@
 
             const mountElement = document.getElementById('liepinRecordsVueApp');
             if (mountElement) {
-                this.app.mount(mountElement);
+                const rootInstance = this.app.mount(mountElement);
+                // 暴露根组件实例，便于外部按钮调用其方法
+                window.liepinRecordsRoot = rootInstance;
             }
         }
 

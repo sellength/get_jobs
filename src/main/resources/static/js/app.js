@@ -29,6 +29,9 @@ class BossConfigApp {
 
         // 求职配置视图：绑定标签切换加载与刷新
         this.bindBossConfigViewEvents();
+        
+        // 绑定岗位明细按钮事件
+        this.bindJobRecordsEvents();
     }
 
 
@@ -49,6 +52,172 @@ class BossConfigApp {
                 self.loadBossConfigView();
             }
         });
+    }
+
+    // =====================
+    // 岗位明细按钮事件
+    // =====================
+    bindJobRecordsEvents() {
+        // Boss直聘岗位明细按钮
+        this.bindPlatformJobRecordsEvents('boss', 'BOSS直聘');
+        
+        // 智联招聘岗位明细按钮
+        this.bindPlatformJobRecordsEvents('zhilian', '智联招聘');
+        
+        // 前程无忧岗位明细按钮
+        this.bindPlatformJobRecordsEvents('job51', '前程无忧');
+        
+        // 猎聘岗位明细按钮
+        this.bindPlatformJobRecordsEvents('liepin', '猎聘');
+    }
+
+    bindPlatformJobRecordsEvents(platform, platformName) {
+        // 重置岗位状态按钮
+        const resetBtn = document.getElementById(`${platform}RecordResetBtn`);
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.handleResetFilter(platform, platformName);
+            });
+            console.log(`已绑定${platformName}重置岗位状态按钮事件`);
+        }
+
+        // 删除岗位按钮
+        const deleteBtn = document.getElementById(`${platform}RecordDeleteBtn`);
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this.handleDeleteAllJobs(platform, platformName);
+            });
+            console.log(`已绑定${platformName}删除岗位按钮事件`);
+        }
+    }
+
+    // 处理重置岗位状态
+    handleResetFilter(platform, platformName) {
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmModalBody = document.getElementById('confirmModalBody');
+        const confirmModalOk = document.getElementById('confirmModalOk');
+        
+        if (confirmModal && confirmModalBody && confirmModalOk) {
+            confirmModalBody.textContent = `确定要重置${platformName}的所有岗位状态吗？此操作将清除所有岗位的过滤状态。`;
+            
+            // 移除之前的事件监听器
+            const newOkBtn = confirmModalOk.cloneNode(true);
+            confirmModalOk.parentNode.replaceChild(newOkBtn, confirmModalOk);
+            
+            newOkBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/jobs/reset-filter', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `platform=${encodeURIComponent(platformName)}`
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        CommonUtils.showToast(`重置成功，共重置${result}个岗位状态`, 'success');
+                        
+                        // 刷新对应的Vue应用数据
+                        this.refreshPlatformData(platform);
+                    } else {
+                        CommonUtils.showToast('重置失败，请稍后重试', 'danger');
+                    }
+                } catch (error) {
+                    console.error('重置岗位状态失败:', error);
+                    CommonUtils.showToast('重置失败，请稍后重试', 'danger');
+                }
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(confirmModal);
+                if (modal) {
+                    modal.hide();
+                }
+            });
+            
+            // 显示确认模态框
+            const modal = new bootstrap.Modal(confirmModal);
+            modal.show();
+        } else {
+            console.error('确认模态框元素未找到');
+        }
+    }
+
+    // 处理删除所有岗位
+    handleDeleteAllJobs(platform, platformName) {
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmModalBody = document.getElementById('confirmModalBody');
+        const confirmModalOk = document.getElementById('confirmModalOk');
+        
+        if (confirmModal && confirmModalBody && confirmModalOk) {
+            confirmModalBody.textContent = `确定要删除${platformName}的所有岗位吗？此操作不可恢复，请谨慎操作！`;
+            
+            // 移除之前的事件监听器
+            const newOkBtn = confirmModalOk.cloneNode(true);
+            confirmModalOk.parentNode.replaceChild(newOkBtn, confirmModalOk);
+            
+            newOkBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/jobs', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `platform=${encodeURIComponent(platformName)}`
+                    });
+                    
+                    if (response.ok) {
+                        CommonUtils.showToast(`${platformName}所有岗位已删除`, 'success');
+                        
+                        // 刷新对应的Vue应用数据
+                        this.refreshPlatformData(platform);
+                    } else {
+                        CommonUtils.showToast('删除失败，请稍后重试', 'danger');
+                    }
+                } catch (error) {
+                    console.error('删除岗位失败:', error);
+                    CommonUtils.showToast('删除失败，请稍后重试', 'danger');
+                }
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(confirmModal);
+                if (modal) {
+                    modal.hide();
+                }
+            });
+            
+            // 显示确认模态框
+            const modal = new bootstrap.Modal(confirmModal);
+            modal.show();
+        } else {
+            console.error('确认模态框元素未找到');
+        }
+    }
+
+    // 刷新平台数据
+    refreshPlatformData(platform) {
+        switch (platform) {
+            case 'boss':
+                if (window.bossRecordsRoot && typeof window.bossRecordsRoot.refreshData === 'function') {
+                    window.bossRecordsRoot.refreshData();
+                }
+                break;
+            case 'zhilian':
+                if (window.zhilianRecordsRoot && typeof window.zhilianRecordsRoot.refreshData === 'function') {
+                    window.zhilianRecordsRoot.refreshData();
+                }
+                break;
+            case 'job51':
+                if (window.job51RecordsRoot && typeof window.job51RecordsRoot.refreshData === 'function') {
+                    window.job51RecordsRoot.refreshData();
+                }
+                break;
+            case 'liepin':
+                if (window.liepinRecordsRoot && typeof window.liepinRecordsRoot.refreshData === 'function') {
+                    window.liepinRecordsRoot.refreshData();
+                }
+                break;
+        }
     }
 
     loadBossConfigView(force = false) {

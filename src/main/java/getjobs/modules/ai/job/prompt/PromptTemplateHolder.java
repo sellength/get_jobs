@@ -5,6 +5,12 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 
 import java.util.Collections;
 import java.util.HashMap;
+import getjobs.modules.ai.config.AiPromptProperties;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -31,16 +37,16 @@ public class PromptTemplateHolder {
      * @param placeholders 提示词模板中所有必需的占位符（变量）的可迭代集合。
      * @param template     要封装的 {@link PromptTemplate} 实例。
      */
-    public PromptTemplateHolder(String description, Iterable<String> placeholders, PromptTemplate template) {
+    public PromptTemplateHolder(String description, Map<String, AiPromptProperties.Placeholder> placeholders, PromptTemplate template) {
         this.description = description;
         this.template = Objects.requireNonNull(template, "template must not be null");
         Set<String> variables = new HashSet<>();
         if (placeholders != null) {
-            for (String placeholder : placeholders) {
-                if (placeholder != null && !placeholder.isBlank()) {
-                    variables.add(placeholder);
+            placeholders.forEach((key, value) -> {
+                if (value.isRequired()) {
+                    variables.add(key);
                 }
-            }
+            });
         }
         this.requiredVariables = Collections.unmodifiableSet(variables);
     }

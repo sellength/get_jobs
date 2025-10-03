@@ -1,8 +1,13 @@
 package getjobs.service;
 
+import getjobs.common.enums.JobStatusEnum;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,6 +59,20 @@ public class JobService {
             log.error("保存职位数据到数据库失败", e);
             throw new RuntimeException("保存职位数据失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 分页搜索职位
+     *
+     * @param platform 平台（可为空）
+     * @param keyword  关键字（可为空，匹配职位、公司或HR）
+     * @param page     页码（从0开始）
+     * @param size     每页大小
+     * @return 分页结果
+     */
+    public Page<JobEntity> search(String platform, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        return jobRepository.search(platform, keyword, pageable);
     }
 
     /**
@@ -113,7 +132,7 @@ public class JobService {
             dto.setWelfareList(List.of(entity.getWelfareList().split(",")));
         }
 
-        dto.setJobDescription(entity.getJobDescription());
+        dto.setJobDescription(entity.getJobPostDescription());
         dto.setJobRequirements(entity.getJobRequirements());
 
         // 公司信息映射
@@ -200,6 +219,43 @@ public class JobService {
         entity.setIsFavorite(false); // 默认不收藏
 
         return entity;
+    }
+
+    /**
+     * 重置指定平台下的职位过滤状态：status=0, filterReason=null
+     *
+     * @param platform 平台名称
+     * @return 重置的职位数量
+     */
+    @Transactional
+    public int resetFilterByPlatform(String platform) {
+        if (platform == null || platform.trim().isEmpty()) {
+            throw new IllegalArgumentException("platform不能为空");
+        }
+
+        List<JobEntity> jobs = jobRepository.findByPlatform(platform);
+        if (jobs.isEmpty()) {
+            return 0;
+        }
+        for (JobEntity job : jobs) {
+            job.setStatus(JobStatusEnum.PENDING.getCode());
+            job.setFilterReason(null);
+        }
+        jobRepository.saveAll(jobs);
+        return jobs.size();
+    }
+
+    /**
+     * 按平台删除所有职位
+     *
+     * @param platform 平台名称
+     */
+    @Transactional
+    public void deleteAllByPlatform(String platform) {
+        if (platform == null || platform.trim().isEmpty()) {
+            throw new IllegalArgumentException("platform不能为空");
+        }
+        jobRepository.deleteByPlatform(platform);
     }
 
     /**

@@ -1,5 +1,8 @@
 package getjobs.modules.ai.config;
 
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -50,12 +53,13 @@ public class AiPromptProperties {
         private String description;
 
         /**
-         * 提示词模板中使用的占位符列表。
+         * 提示词模板中使用的占位符。
          * <p>
-         * 例如：["resume", "job_description"]
+         * Map 的键是占位符的名称（例如 "my_jd"），值是 {@link Placeholder} 对象，
+         * 包含了占位符的详细信息，如是否必需和描述。
          * </p>
          */
-        private List<String> placeholders = new ArrayList<>();
+        private Map<String, Placeholder> placeholders = new HashMap<>();
 
         /**
          * 提示词的模板内容。
@@ -74,11 +78,11 @@ public class AiPromptProperties {
             this.description = description;
         }
 
-        public List<String> getPlaceholders() {
+        public Map<String, Placeholder> getPlaceholders() {
             return placeholders;
         }
 
-        public void setPlaceholders(List<String> placeholders) {
+        public void setPlaceholders(Map<String, Placeholder> placeholders) {
             this.placeholders = placeholders;
         }
 
@@ -89,5 +93,26 @@ public class AiPromptProperties {
         public void setTemplate(String template) {
             this.template = template;
         }
+    }
+
+    /**
+     * 表示提示词模板中单个占位符的定义。
+     */
+    @Data
+    public static class Placeholder {
+
+        /**
+         * 指示用户是否必须为此占位符提供值。
+         */
+        private boolean required;
+
+        /**
+         * 占位符的描述，用于解释其预期的内容或用途。
+         */
+        private String description;
+
+
+        private String value;
+
     }
 }

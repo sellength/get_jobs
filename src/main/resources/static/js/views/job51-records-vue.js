@@ -254,6 +254,8 @@ const Job51RecordsApp = createApp({
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('job51RecordsVueApp');
     if (container) {
-        Job51RecordsApp.mount('#job51RecordsVueApp');
+        const rootInstance = Job51RecordsApp.mount('#job51RecordsVueApp');
+        // 暴露根组件实例，便于外部按钮调用其方法
+        window.job51RecordsRoot = rootInstance;
     }
 });

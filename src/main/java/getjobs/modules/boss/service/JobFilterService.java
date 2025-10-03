@@ -1,8 +1,12 @@
 package getjobs.modules.boss.service;
 
 import getjobs.common.dto.ConfigDTO;
+import getjobs.modules.ai.common.enums.AiPlatform;
+import getjobs.modules.ai.job.service.JobMatchAiService;
+import getjobs.modules.ai.service.AiPromptService;
 import getjobs.modules.boss.dto.JobDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,6 +23,15 @@ public class JobFilterService {
 
     private Set<String> blackJobs = new HashSet<>();
 
+
+    private final JobMatchAiService jobMatchAiService;
+
+    private final AiPromptService aiPromptService;
+
+    public JobFilterService(JobMatchAiService jobMatchAiService, AiPromptService aiPromptService) {
+        this.jobMatchAiService = jobMatchAiService;
+        this.aiPromptService = aiPromptService;
+    }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
         log.info("开始Boss直聘岗位过滤，原始岗位数量: {}", jobDTOS.size());
@@ -66,8 +79,24 @@ public class JobFilterService {
 
         // 检测HR活跃状态
         if (config.getDeadStatus() != null && !config.getDeadStatus().isEmpty()) {
-            if(config.getDeadStatus().contains(job.getHrActiveTime())){
-                return "HR活跃状态已被过滤-"+job.getHrActiveTime();
+            if (config.getDeadStatus().contains(job.getHrActiveTime())) {
+                return "HR活跃状态已被过滤-" + job.getHrActiveTime();
+            }
+        }
+
+        // AI岗位匹配度过滤
+        if (config.getEnableAIJobMatchDetection()) {
+            String myJd = aiPromptService.getPromptTemplate("job.match-position").get().getPlaceholders().get("my_jd");
+            String jobDescription  = job.getJobDescription();
+            if(ObjectUtils.isEmpty(jobDescription)){
+                return "AI岗位匹配失败，职位要求为空";
+            }
+            if(ObjectUtils.isNotEmpty(myJd)){
+                if (!jobMatchAiService.isMatch(myJd, job.getJobDescription(), AiPlatform.DEEPSEEK)) {
+                    return "AI岗位匹配度低于阈值";
+                }
+            }else {
+                return "AI岗位匹配失败，请补充期望岗位职责";
             }
         }
 

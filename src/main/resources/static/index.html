@@ -768,6 +768,10 @@
                                         class="bi bi-search"></i></button>
                                 <button class="btn btn-sm btn-outline-secondary" id="bossRecordRefreshBtn"><i
                                         class="bi bi-arrow-clockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" id="bossRecordResetBtn" title="重置岗位状态"><i
+                                        class="bi bi-arrow-counterclockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" id="bossRecordDeleteBtn" title="删除所有岗位"><i
+                                        class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -1354,6 +1358,10 @@
                                         class="bi bi-search"></i></button>
                                 <button class="btn btn-sm btn-outline-secondary" id="zhilianRecordRefreshBtn"><i
                                         class="bi bi-arrow-clockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" id="zhilianRecordResetBtn" title="重置岗位状态"><i
+                                        class="bi bi-arrow-counterclockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" id="zhilianRecordDeleteBtn" title="删除所有岗位"><i
+                                        class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -1930,6 +1938,10 @@
                                         class="bi bi-search"></i></button>
                                 <button class="btn btn-sm btn-outline-secondary" id="job51RecordRefreshBtn"><i
                                         class="bi bi-arrow-clockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" id="job51RecordResetBtn" title="重置岗位状态"><i
+                                        class="bi bi-arrow-counterclockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" id="job51RecordDeleteBtn" title="删除所有岗位"><i
+                                        class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -2470,8 +2482,28 @@
                 </div>
                 <div class="tab-pane fade" id="liepin-records-pane" role="tabpanel"
                      aria-labelledby="liepin-records-tab">
-                    <div id="liepinRecordsVueApp">
-                        <!-- Vue app for liepin records -->
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0 text-dark"><i class="bi bi-journal-text me-2 text-primary"></i>岗位明细</h5>
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control form-control-sm" id="liepinRecordKeyword"
+                                       placeholder="岗位/公司/HR关键词">
+                                <button class="btn btn-sm btn-outline-primary" id="liepinRecordSearchBtn"><i
+                                        class="bi bi-search"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary" id="liepinRecordRefreshBtn"><i
+                                        class="bi bi-arrow-clockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" id="liepinRecordResetBtn" title="重置岗位状态"><i
+                                        class="bi bi-arrow-counterclockwise"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" id="liepinRecordDeleteBtn" title="删除所有岗位"><i
+                                        class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Vue应用挂载点 -->
+                            <div id="liepinRecordsVueApp">
+                                <!-- Vue app for liepin records -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2508,19 +2540,8 @@
     <div class="ai-prompt-content">
         <h5>
             <i class="bi bi-pencil-square me-2"></i>
-            自定义AI提示词
+            AI所信息补全
         </h5>
-        <div class="mb-3">
-            <label for="jobMatchDescription" class="form-label">岗位匹配提示词</label>
-            <div class="form-control" style="height: auto; background-color: #f8f9fa;">
-                帮我根据职位描述判断对应职位是否匹配我的岗位，我需要做
-                <input type="text" id="jobMatchDescription" class="form-control form-control-sm d-inline-block" style="width: 150px;" placeholder="例如: Java后端开发">
-                工作，给我返回是否匹配即可，是返回true，否返回false
-                <br><br>
-                职位描述如下：
-            </div>
-            <textarea id="jobMatchPrompt" style="display:none;"></textarea>
-        </div>
         <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">保存</button>
     </div>
 </div>
