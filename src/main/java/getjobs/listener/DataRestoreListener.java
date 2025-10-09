@@ -41,6 +41,7 @@ public class DataRestoreListener {
                 log.info("备份文件大小: {} bytes", backupInfo.get("fileSize"));
 
                 if (backupInfo.containsKey("exportTime")) {
+
                     log.info("备份时间: {}", backupInfo.get("exportTime"));
                 }
                 if (backupInfo.containsKey("configCount")) {

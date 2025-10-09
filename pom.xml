@@ -127,6 +127,11 @@
         <!-- ============ -->
         <!-- 工具与辅助 -->
         <!-- ============ -->
+        <dependency>
+            <groupId>com.samskivert</groupId>
+            <artifactId>jmustache</artifactId>
+            <version>1.16</version>
+        </dependency>
         <!-- 环境变量读取（支持 .env 文件） -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>

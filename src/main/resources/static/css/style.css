@@ -1163,10 +1163,142 @@ body {
 
 .ai-prompt-content {
     padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .ai-prompt-content h5 {
     color: #4a5568;
     font-weight: 600;
     margin-bottom: 16px;
+}
+
+/* AI提示词面板页签样式 */
+#aiPromptTabs .nav-link {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    color: #6c757d;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+#aiPromptTabs .nav-link:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+#aiPromptTabs .nav-link.active {
+    color: #fff;
+    background-color: #667eea;
+    border-color: #667eea;
+    font-weight: 600;
+}
+
+#aiPromptTabs .nav-link i {
+    font-size: 14px;
+}
+
+/* 候选人信息表单样式 */
+.profile-form .form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.profile-form .form-control {
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+}
+
+.profile-form .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.15rem rgba(102, 126, 234, 0.25);
+}
+
+.profile-form .form-text {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.profile-form .text-danger {
+    color: #dc3545 !important;
+    font-size: 12px;
+}
+
+/* 打招呼内容表单样式 */
+.greeting-form .form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.greeting-form .form-control {
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    resize: vertical;
+}
+
+.greeting-form .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.15rem rgba(102, 126, 234, 0.25);
+}
+
+/* 表单验证样式 */
+.form-control.is-valid {
+    border-color: #198754;
+    background-image: none;
+}
+
+.form-control.is-valid:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.25);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: none;
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.25);
+}
+
+/* 操作按钮样式 */
+.ai-prompt-content .btn {
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.ai-prompt-content .btn-primary {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+.ai-prompt-content .btn-primary:hover {
+    background-color: #5a6fd8;
+    border-color: #5a6fd8;
+}
+
+.ai-prompt-content .btn-outline-success {
+    color: #198754;
+    border-color: #198754;
+}
+
+.ai-prompt-content .btn-outline-success:hover {
+    background-color: #198754;
+    border-color: #198754;
+    color: #fff;
 }

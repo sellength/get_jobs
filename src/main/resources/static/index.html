@@ -2542,7 +2542,156 @@
             <i class="bi bi-pencil-square me-2"></i>
             AI所信息补全
         </h5>
-        <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">保存</button>
+        
+        <!-- 页签导航 -->
+        <ul class="nav nav-tabs nav-fill mb-3" id="aiPromptTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane"
+                        type="button" role="tab" aria-controls="profile-pane" aria-selected="true">
+                    <i class="bi bi-person-circle me-1"></i>候选人信息
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="greeting-tab" data-bs-toggle="tab" data-bs-target="#greeting-pane"
+                        type="button" role="tab" aria-controls="greeting-pane" aria-selected="false">
+                    <i class="bi bi-chat-dots me-1"></i>打招呼内容
+                </button>
+            </li>
+        </ul>
+        
+        <!-- 页签内容 -->
+        <div class="tab-content" id="aiPromptTabsContent">
+            <!-- 候选人信息页签 -->
+            <div class="tab-pane fade show active" id="profile-pane" role="tabpanel" aria-labelledby="profile-tab">
+                <div class="profile-form" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 基本信息 -->
+                    <div class="mb-3">
+                        <label for="profileRole" class="form-label small fw-semibold">
+                            角色/职位 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="profileRole" 
+                               placeholder="例如: Java 后端开发/高级">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="profileYears" class="form-label small fw-semibold">
+                            工作年限 <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control form-control-sm" id="profileYears" 
+                               placeholder="例如: 8" min="0" max="50">
+                    </div>
+                    
+                    <!-- 从事领域 -->
+                    <div class="mb-3">
+                        <label for="profileDomains" class="form-label small fw-semibold">
+                            从事领域
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="profileDomains" 
+                               placeholder="例如: 电商,支付,金融 (用逗号分隔)">
+                        <small class="form-text text-muted">多个领域请用英文逗号分隔</small>
+                    </div>
+                    
+                    <!-- 核心技术栈 -->
+                    <div class="mb-3">
+                        <label for="profileCoreStack" class="form-label small fw-semibold">
+                            核心技术栈
+                        </label>
+                        <textarea class="form-control form-control-sm" id="profileCoreStack" rows="3" 
+                                  placeholder="例如: Spring Boot,Spring Cloud Gateway,Redis,MySQL,MQ(Artemis/Kafka),Docker"></textarea>
+                        <small class="form-text text-muted">多个技术请用英文逗号分隔</small>
+                    </div>
+                    
+                    <!-- 项目规模 -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">项目规模</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label for="profileQpsPeak" class="form-label small">峰值QPS</label>
+                                <input type="text" class="form-control form-control-sm" id="profileQpsPeak" 
+                                       placeholder="例如: 3k+">
+                            </div>
+                            <div class="col-6">
+                                <label for="profileSla" class="form-label small">SLA</label>
+                                <input type="text" class="form-control form-control-sm" id="profileSla" 
+                                       placeholder="例如: 99.99%">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主要成就 -->
+                    <div class="mb-3">
+                        <label for="profileAchievements" class="form-label small fw-semibold">
+                            主要成就
+                        </label>
+                        <textarea class="form-control form-control-sm" id="profileAchievements" rows="3" 
+                                  placeholder="例如: 订单超时处理从5分钟降至30秒，稳定性至99.99%; 重构网关限流与灰度发布，峰值3k QPS 稳定"></textarea>
+                        <small class="form-text text-muted">多个成就请用分号分隔</small>
+                    </div>
+                    
+                    <!-- 个人强项 -->
+                    <div class="mb-3">
+                        <label for="profileStrengths" class="form-label small fw-semibold">
+                            个人强项/优势
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="profileStrengths" 
+                               placeholder="例如: 性能调优,微服务治理,疑难排障">
+                        <small class="form-text text-muted">多个强项请用英文逗号分隔</small>
+                    </div>
+                    
+                    <!-- 待提升方面 -->
+                    <div class="mb-3">
+                        <label for="profileImprovements" class="form-label small fw-semibold">
+                            待提升方面
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="profileImprovements" 
+                               placeholder="例如: 前端薄弱，已在补 Vue3">
+                        <small class="form-text text-muted">多个方面请用英文逗号分隔</small>
+                    </div>
+                    
+                    <!-- 到岗时间及地点期望 -->
+                    <div class="mb-3">
+                        <label for="profileAvailability" class="form-label small fw-semibold">
+                            到岗时间及地点期望
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="profileAvailability" 
+                               placeholder="例如: 两周到岗，广州/可远程">
+                    </div>
+                    
+                    <!-- 个人链接 -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">个人链接</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label for="profileGithub" class="form-label small">GitHub</label>
+                                <input type="url" class="form-control form-control-sm" id="profileGithub" 
+                                       placeholder="https://github.com/username">
+                            </div>
+                            <div class="col-6">
+                                <label for="profilePortfolio" class="form-label small">作品集</label>
+                                <input type="url" class="form-control form-control-sm" id="profilePortfolio" 
+                                       placeholder="https://portfolio.com">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 打招呼内容页签 -->
+            <div class="tab-pane fade" id="greeting-pane" role="tabpanel" aria-labelledby="greeting-tab">
+                <div class="greeting-form">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="d-grid gap-2 mt-3">
+            <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-save me-1"></i>保存候选人信息
+            </button>
+            <button id="generateGreetingBtn" class="btn btn-outline-success btn-sm w-100">
+                <i class="bi bi-robot me-1"></i>AI生成打招呼
+            </button>
+        </div>
     </div>
 </div>
 
