@@ -896,7 +896,9 @@ class ZhilianConfigForm {
     isLoggedIn() {
         if (!this.latestTaskStatus) return false;
         const loginStatus = this.latestTaskStatus.login;
-        return loginStatus && loginStatus.state === 'SUCCESS';
+        // 后端返回的字段是 status，不是 state
+        const state = loginStatus?.status || loginStatus?.state;
+        return loginStatus && state === 'SUCCESS';
     }
 
     // 查询所有任务状态
@@ -906,10 +908,18 @@ class ZhilianConfigForm {
             if (!response.ok) return;
             
             const result = await response.json();
-            if (!result || !result.data) return;
+            if (!result) return;
             
-            // 更新智联招聘模块的任务状态
-            const zhilianStatus = result.data.zhilian || {};
+            // 后端返回的是扁平结构：{ "ZHILIAN_ZHAOPIN_LOGIN": {...}, "ZHILIAN_ZHAOPIN_COLLECT": {...}, ... }
+            // 需要转换为前端期望的嵌套结构
+            const zhilianStatus = {
+                login: result['ZHILIAN_ZHAOPIN_LOGIN'],
+                collect: result['ZHILIAN_ZHAOPIN_COLLECT'],
+                filter: result['ZHILIAN_ZHAOPIN_FILTER'],
+                deliver: result['ZHILIAN_ZHAOPIN_DELIVER']
+            };
+            
+            console.log('智联招聘: 任务状态数据（转换后）:', zhilianStatus);
             
             // 缓存最新的任务状态
             this.latestTaskStatus = zhilianStatus;
@@ -956,10 +966,15 @@ class ZhilianConfigForm {
         const uiElements = buttonMap[taskType];
         if (!uiElements) return;
         
-        const state = taskStatus.state; // PENDING, RUNNING, SUCCESS, FAILED
+        // 后端返回的字段是 status，不是 state
+        // 状态值：STARTED, SUCCESS, FAILURE
+        const state = taskStatus.status || taskStatus.state;
         const message = taskStatus.message || '';
         
+        console.log(`智联招聘: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
+        
         switch (state) {
+            case 'STARTED':
             case 'RUNNING':
                 this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true);
                 break;
@@ -977,8 +992,12 @@ class ZhilianConfigForm {
                 }
                 break;
             case 'FAILED':
+            case 'FAILURE':
                 this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false);
                 this.stopStatusPolling();
+                break;
+            case 'PENDING':
+                // 待执行状态，保持默认
                 break;
         }
     }

@@ -15,14 +15,25 @@
             };
             this.statusPollingInterval = null; // 状态轮询定时器
             this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
+            this.hrStatusTagsInput = null; // HR状态标签输入组件
             this.init();
         }
 
         init() {
             this.initializeTooltips();
+            this.initializeTagsInput();
             this.bindEvents();
             // 先加载字典数据，再加载配置数据，确保下拉框已准备好
             this.loadDataSequentially();
+        }
+
+        initializeTagsInput() {
+            // 初始化HR状态标签输入组件
+            const hrStatusInput = document.getElementById('bossHrStatusKeywords');
+            const hrStatusWrapper = document.getElementById('hrStatusTags');
+            if (hrStatusInput && hrStatusWrapper) {
+                this.hrStatusTagsInput = new window.TagsInput(hrStatusInput, hrStatusWrapper);
+            }
         }
 
         initializeTooltips() {
@@ -135,6 +146,11 @@
             // 城市配置相关功能已移除，通过字典接口动态加载
         }
 
+        bindHRStatusConfig() {
+            // HR状态配置已通过 TagsInput 组件实现
+            // 相关初始化在 initializeTagsInput() 方法中完成
+        }
+
         addCityCodeItem(container, city, code) {
             const item = document.createElement('div');
             item.className = 'd-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded border';
@@ -156,29 +172,6 @@
             }
         }
 
-        bindHRStatusConfig() {
-            // HR状态配置相关功能已移除，通过字典接口动态加载
-        }
-
-        addHRStatusItem(container, status) {
-            const item = document.createElement('div');
-            item.className = 'd-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded border';
-            item.innerHTML = `
-                <span class="fw-semibold">${status}</span>
-                <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()">
-                    <i class="bi bi-trash"></i>
-                </button>
-            `;
-            container.appendChild(item);
-        }
-
-        showAddHRStatusModal() {
-            const status = prompt('请输入HR状态描述:');
-            if (status) {
-                const container = document.getElementById('deadStatusContainer');
-                this.addHRStatusItem(container, status);
-            }
-        }
 
         bindAutoSave() {
             const formElements = document.querySelectorAll('input, select, textarea');
@@ -413,6 +406,24 @@
             
             // 特殊处理其他下拉框
             this.populateSelectBoxes();
+            
+            // 特殊处理HR状态标签
+            this.populateHrStatusTags();
+        }
+
+        // 填充HR状态标签
+        populateHrStatusTags() {
+            if (this.hrStatusTagsInput && this.config.deadStatus) {
+                // 处理数组格式或逗号分隔的字符串
+                let statusArray = [];
+                if (Array.isArray(this.config.deadStatus)) {
+                    statusArray = this.config.deadStatus;
+                } else if (typeof this.config.deadStatus === 'string') {
+                    statusArray = this.config.deadStatus.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                console.log('BossConfigForm: 填充HR状态标签:', statusArray);
+                this.hrStatusTagsInput.setTags(statusArray);
+            }
         }
 
         // 填充城市选择器
@@ -1081,7 +1092,7 @@
                 enableAIJobMatchDetection: document.getElementById('enableAIJobMatchDetectionCheckBox')?.checked || false,
                 enableAIGreeting: document.getElementById('enableAIGreetingCheckBox')?.checked || false,
                 checkStateOwned: document.getElementById('checkStateOwnedCheckBox')?.checked || false,
-                deadStatus: Array.from(document.querySelectorAll('#deadStatusContainer .fw-semibold')).map(el => el.textContent.trim())
+                deadStatus: this.hrStatusTagsInput ? this.hrStatusTagsInput.getTags() : []
             };
         }
 
@@ -1179,7 +1190,9 @@
         isLoggedIn() {
             if (!this.latestTaskStatus) return false;
             const loginStatus = this.latestTaskStatus.login;
-            return loginStatus && loginStatus.state === 'SUCCESS';
+            // 后端返回的字段是 status，不是 state
+            const state = loginStatus?.status || loginStatus?.state;
+            return loginStatus && state === 'SUCCESS';
         }
 
         // 查询所有任务状态
@@ -1189,10 +1202,18 @@
                 if (!response.ok) return;
                 
                 const result = await response.json();
-                if (!result || !result.data) return;
+                if (!result) return;
                 
-                // 更新Boss模块的任务状态
-                const bossStatus = result.data.boss || {};
+                // 后端返回的是扁平结构：{ "BOSS_ZHIPIN_LOGIN": {...}, "BOSS_ZHIPIN_COLLECT": {...}, ... }
+                // 需要转换为前端期望的嵌套结构
+                const bossStatus = {
+                    login: result['BOSS_ZHIPIN_LOGIN'],
+                    collect: result['BOSS_ZHIPIN_COLLECT'],
+                    filter: result['BOSS_ZHIPIN_FILTER'],
+                    deliver: result['BOSS_ZHIPIN_DELIVER']
+                };
+                
+                console.log('Boss: 任务状态数据（转换后）:', bossStatus);
                 
                 // 缓存最新的任务状态
                 this.latestTaskStatus = bossStatus;
@@ -1239,10 +1260,15 @@
             const uiElements = buttonMap[taskType];
             if (!uiElements) return;
             
-            const state = taskStatus.state; // PENDING, RUNNING, SUCCESS, FAILED
+            // 后端返回的字段是 status，不是 state
+            // 状态值：STARTED, SUCCESS, FAILURE
+            const state = taskStatus.status || taskStatus.state;
             const message = taskStatus.message || '';
             
+            console.log(`Boss: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
+            
             switch (state) {
+                case 'STARTED':
                 case 'RUNNING':
                     this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true, 'warning');
                     break;
@@ -1260,8 +1286,12 @@
                     }
                     break;
                 case 'FAILED':
+                case 'FAILURE':
                     this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false, 'danger');
                     this.stopStatusPolling();
+                    break;
+                case 'PENDING':
+                    // 待执行状态，保持默认
                     break;
             }
         }

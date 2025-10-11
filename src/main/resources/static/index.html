@@ -511,27 +511,22 @@
                                                          data-bs-parent="#hrStatusConfigAccordion">
                                                         <div class="accordion-body p-2">
                                                             <div class="mb-2 small lh-sm">
-                                                                <label class="form-label fw-semibold small">
+                                                                <label for="bossHrStatusKeywords" class="form-label fw-semibold small">
                                                                     HR过滤状态配置
                                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                                        data-bs-toggle="tooltip"
-                                                                       title="配置HR活跃度判断规则"></i>
+                                                                       title="配置需要过滤的HR活跃状态。输入关键字后按回车添加"></i>
                                                                 </label>
-                                                                <div id="deadStatusContainer"
-                                                                     class="border rounded p-1 bg-light me-auto fs-6 lh-sm mb-2"
-                                                                     style="max-width: 400px;">
-                                                                    <small class="text-muted fst-italic">可添加或删除HR状态</small>
-                                                                </div>
-                                                                <div class="input-group input-group-sm" style="max-width: 400px;">
+                                                                <div class="tags-input-container" id="hrStatusTagsContainer" style="max-width: 400px;">
+                                                                    <div class="tags-wrapper" id="hrStatusTags"></div>
                                                                     <input type="text" 
-                                                                           class="form-control form-control-sm" 
-                                                                           id="hrStatusInput"
-                                                                           placeholder="输入HR状态，如：半年前活跃">
-                                                                    <button class="btn btn-sm btn-outline-primary" 
-                                                                            type="button" 
-                                                                            id="addHrStatusBtn">
-                                                                        <i class="bi bi-plus-lg me-1"></i>添加
-                                                                    </button>
+                                                                           class="tags-input" 
+                                                                           id="bossHrStatusKeywords"
+                                                                           placeholder="输入HR状态后按回车添加，如：半年前活跃">
+                                                                </div>
+                                                                <div class="form-text">
+                                                                    <i class="bi bi-info-circle me-1"></i>
+                                                                    输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -646,7 +641,7 @@
                                                 <!-- 步骤1: 登录 -->
                                                 <div class="d-flex gap-1 mb-1">
                                                     <button type="button" class="btn btn-primary btn-sm flex-grow-1 py-2"
-                                                            id="loginBtn">
+                                                            id="loginBtn" disabled>
                                                         <i class="bi bi-box-arrow-in-right me-2"></i>1. Boss登录
                                                         <span class="badge bg-light text-dark ms-2" id="loginStatus">待执行</span>
                                                     </button>
@@ -1426,7 +1421,7 @@
                                                 <!-- 步骤1: 登录 -->
                                                 <div class="d-flex gap-1 mb-1">
                                                     <button type="button" class="btn btn-primary btn-sm flex-grow-1 py-2"
-                                                            id="zhilianLoginBtn">
+                                                            id="zhilianLoginBtn" disabled>
                                                         <i class="bi bi-box-arrow-in-right me-2"></i>1. 智联招聘登录
                                                         <span class="badge bg-light text-dark ms-2" id="zhilianLoginStatus">待执行</span>
                                                     </button>
@@ -2019,7 +2014,7 @@
                                                 <!-- 步骤1: 登录 -->
                                                 <div class="d-flex gap-1 mb-1">
                                                     <button type="button" class="btn btn-primary btn-sm flex-grow-1 py-2"
-                                                            id="job51LoginBtn">
+                                                            id="job51LoginBtn" disabled>
                                                         <i class="bi bi-box-arrow-in-right me-2"></i>1. 51job登录
                                                         <span class="badge bg-light text-dark ms-2" id="job51LoginStatus">待执行</span>
                                                     </button>
@@ -2614,7 +2609,7 @@
                                                 
                                                 <div class="d-flex gap-1 mb-1">
                                                     <button type="button" class="btn btn-primary btn-sm flex-grow-1 py-2"
-                                                            id="liepinLoginBtn">
+                                                            id="liepinLoginBtn" disabled>
                                                         <i class="bi bi-box-arrow-in-right me-2"></i>1. 猎聘登录
                                                         <span class="badge bg-light text-dark ms-2" id="liepinLoginStatus">待执行</span>
                                                     </button>

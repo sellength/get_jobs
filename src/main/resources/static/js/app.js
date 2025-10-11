@@ -465,15 +465,23 @@ class TaskStatusUpdater {
                 }
             }
 
-            // 如果是LOGIN阶段且状态为SUCCESS，自动启用后续步骤
-            if (stage === 'LOGIN' && status === 'SUCCESS') {
-                this.enableNextSteps(platform, platformPrefix);
-            }
-            // 如果是LOGIN阶段且状态为FAILURE，禁用后续步骤
-            if (stage === 'LOGIN' && status === 'FAILURE') {
-                this.disableNextSteps(platform, platformPrefix);
+            // 如果是LOGIN阶段，根据状态更新登录按钮和后续步骤
+            if (stage === 'LOGIN') {
+                if (status === 'SUCCESS') {
+                    this.enableNextSteps(platform, platformPrefix);
+                } else if (status === 'FAILURE') {
+                    this.disableNextSteps(platform, platformPrefix);
+                } else if (status === 'IN_PROGRESS' || status === 'STARTED') {
+                    this.updateLoginButton(platform, platformPrefix, true, false); // 禁用按钮，表示正在登录
+                }
             }
         }
+    }
+
+    // 更新登录按钮状态（登录按钮仅用于展示，不响应用户点击）
+    updateLoginButton(platform, platformPrefix, isLoading, isEnabled) {
+        // 登录按钮仅用于展示轮询检查的登录信息，无需启用/禁用
+        console.log('Login button is display-only, no state change needed');
     }
 
     // 启用登录成功后的后续步骤
@@ -497,7 +505,7 @@ class TaskStatusUpdater {
             applyStatusId = `${platformPrefix}ApplyStatus`;
         }
 
-        // 启用按钮
+        // 启用后续步骤按钮
         const collectBtn = document.getElementById(collectBtnId);
         const filterBtn = document.getElementById(filterBtnId);
         const applyBtn = document.getElementById(applyBtnId);
@@ -548,7 +556,7 @@ class TaskStatusUpdater {
             applyStatusId = `${platformPrefix}ApplyStatus`;
         }
 
-        // 禁用按钮
+        // 禁用后续步骤按钮
         const collectBtn = document.getElementById(collectBtnId);
         const filterBtn = document.getElementById(filterBtnId);
         const applyBtn = document.getElementById(applyBtnId);
@@ -809,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const platforms = {
         'BOSS_ZHIPIN': 'boss',
         'ZHILIAN_ZHAOPIN': 'zhilian',
-        'JOB51': 'job51',
+        'JOB_51': 'job51',
         'LIEPIN': 'liepin'
     };
     const taskStatusUpdater = new TaskStatusUpdater(platforms);

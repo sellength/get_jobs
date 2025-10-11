@@ -897,7 +897,7 @@ class Job51ConfigForm {
             return;
         }
 
-        this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '执行中...', true);
+        this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '执行中...', true, 'warning');
         
         try {
             const config = this.getCurrentConfig();
@@ -915,11 +915,11 @@ class Job51ConfigForm {
                 // 启动状态轮询
                 this.startStatusPolling();
             } else {
-                this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录失败', false);
+                this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录失败', false, 'danger');
                 this.showToast(result.message || '登录失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录失败', false);
+            this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录失败', false, 'danger');
             this.showToast('登录接口调用失败: ' + error.message, 'danger');
         }
     }
@@ -932,7 +932,7 @@ class Job51ConfigForm {
         this.taskStates.loginTaskId = 'manual_login_' + Date.now();
         console.log('设置taskId:', this.taskStates.loginTaskId);
         
-        this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录成功', false);
+        this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '登录成功', false, 'success');
         console.log('更新51job登录按钮状态为登录成功');
         
         // 启用后续步骤按钮
@@ -952,7 +952,7 @@ class Job51ConfigForm {
             return;
         }
 
-        this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集中...', true);
+        this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集中...', true, 'warning');
         
         try {
             const config = this.getCurrentConfig();
@@ -970,11 +970,11 @@ class Job51ConfigForm {
                 // 启动状态轮询（如果未启动）
                 this.startStatusPolling();
             } else {
-                this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集失败', false);
+                this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集失败', false, 'danger');
                 this.showToast(result.message || '采集失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集失败', false);
+            this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '采集失败', false, 'danger');
             this.showToast('采集接口调用失败: ' + error.message, 'danger');
         }
     }
@@ -986,7 +986,7 @@ class Job51ConfigForm {
             return;
         }
 
-        this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤中...', true);
+        this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤中...', true, 'warning');
         
         try {
             const config = this.getCurrentConfig();
@@ -1009,11 +1009,11 @@ class Job51ConfigForm {
                 // 启动状态轮询（如果未启动）
                 this.startStatusPolling();
             } else {
-                this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤失败', false);
+                this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤失败', false, 'danger');
                 this.showToast(result.message || '过滤失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤失败', false);
+            this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '过滤失败', false, 'danger');
             this.showToast('过滤接口调用失败: ' + error.message, 'danger');
         }
     }
@@ -1035,7 +1035,7 @@ class Job51ConfigForm {
 
     // 执行投递
     async executeApply(enableActualDelivery) {
-        this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递中...', true);
+        this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递中...', true, 'warning');
         
         try {
             const config = this.getCurrentConfig();
@@ -1060,11 +1060,11 @@ class Job51ConfigForm {
                 // 启动状态轮询（如果未启动）
                 this.startStatusPolling();
             } else {
-                this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递失败', false);
+                this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递失败', false, 'danger');
                 this.showToast(result.message || '投递失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递失败', false);
+            this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '投递失败', false, 'danger');
             this.showToast('投递接口调用失败: ' + error.message, 'danger');
         }
     }
@@ -1126,7 +1126,7 @@ class Job51ConfigForm {
     }
 
     // 更新按钮状态
-    updateButtonState(buttonId, statusId, statusText, isLoading) {
+    updateButtonState(buttonId, statusId, statusText, isLoading, statusType = 'warning') {
         const button = document.getElementById(buttonId);
         const status = document.getElementById(statusId);
         
@@ -1136,7 +1136,14 @@ class Job51ConfigForm {
         
         if (status) {
             status.textContent = statusText;
-            status.className = isLoading ? 'badge bg-warning text-dark ms-2' : 'badge bg-success text-white ms-2';
+            const statusClasses = {
+                'warning': 'badge bg-warning text-dark ms-2',
+                'success': 'badge bg-success text-white ms-2',
+                'danger': 'badge bg-danger text-white ms-2',
+                'info': 'badge bg-info text-white ms-2',
+                'default': 'badge bg-light text-dark ms-2'
+            };
+            status.className = statusClasses[statusType] || statusClasses['default'];
         }
     }
 
@@ -1170,10 +1177,10 @@ class Job51ConfigForm {
 
                 this.stopStatusPolling();
 
-                this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '待执行', false);
-                this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '等待登录', true);
-                this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '等待登录', true);
-                this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '等待登录', true);
+                this.updateButtonState('job51LoginBtn', 'job51LoginStatus', '待执行', false, 'default');
+                this.updateButtonState('job51CollectBtn', 'job51CollectStatus', '等待登录', true, 'default');
+                this.updateButtonState('job51FilterBtn', 'job51FilterStatus', '等待登录', true, 'default');
+                this.updateButtonState('job51ApplyBtn', 'job51ApplyStatus', '等待登录', true, 'default');
 
                 document.getElementById('job51CollectBtn').disabled = true;
                 document.getElementById('job51FilterBtn').disabled = true;
@@ -1212,21 +1219,31 @@ class Job51ConfigForm {
     isLoggedIn() {
         if (!this.latestTaskStatus) return false;
         const loginStatus = this.latestTaskStatus.login;
-        return loginStatus && loginStatus.state === 'SUCCESS';
+        // 后端返回的字段是 status，不是 state
+        const state = loginStatus?.status || loginStatus?.state;
+        return loginStatus && state === 'SUCCESS';
     }
 
     // 查询所有任务状态
     async fetchAllTaskStatus() {
         try {
             const response = await fetch('/api/tasks/status');
+            console.log('51job: 查询任务状态响应:', response);
             if (!response.ok) return;
             
             const result = await response.json();
-            if (!result || !result.data) return;
+            if (!result) return;
             
-            // 更新51job模块的任务状态
-            // 注意：后端返回的键名是 "51job"，使用方括号访问
-            const job51Status = result.data['51job'] || {};
+            // 后端返回的是扁平结构：{ "JOB_51_LOGIN": {...}, "JOB_51_COLLECT": {...}, ... }
+            // 需要转换为前端期望的嵌套结构
+            const job51Status = {
+                login: result['JOB_51_LOGIN'],
+                collect: result['JOB_51_COLLECT'],
+                filter: result['JOB_51_FILTER'],
+                deliver: result['JOB_51_DELIVER']
+            };
+            
+            console.log('51job: 任务状态数据（转换后）:', job51Status);
             
             // 缓存最新的任务状态
             this.latestTaskStatus = job51Status;
@@ -1273,15 +1290,20 @@ class Job51ConfigForm {
         const uiElements = buttonMap[taskType];
         if (!uiElements) return;
         
-        const state = taskStatus.state; // PENDING, RUNNING, SUCCESS, FAILED
+        // 后端返回的字段是 status，不是 state
+        // 状态值：STARTED, SUCCESS, FAILURE
+        const state = taskStatus.status || taskStatus.state;
         const message = taskStatus.message || '';
         
+        console.log(`51job: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
+        
         switch (state) {
+            case 'STARTED':
             case 'RUNNING':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true);
+                this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true, 'warning');
                 break;
             case 'SUCCESS':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false);
+                this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false, 'success');
                 // 启用下一步
                 if (taskType === 'login') {
                     this.enableNextStep('job51CollectBtn', 'job51CollectStatus', '可开始采集');
@@ -1294,8 +1316,12 @@ class Job51ConfigForm {
                 }
                 break;
             case 'FAILED':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false);
+            case 'FAILURE':
+                this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false, 'danger');
                 this.stopStatusPolling();
+                break;
+            case 'PENDING':
+                // 待执行状态，保持默认
                 break;
         }
     }
