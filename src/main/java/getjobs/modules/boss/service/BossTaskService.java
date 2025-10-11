@@ -6,14 +6,11 @@ import getjobs.modules.boss.dto.JobDTO;
 import getjobs.common.enums.JobStatusEnum;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
-import getjobs.service.JobService;
-import getjobs.service.PlaywrightManager;
-import getjobs.service.RecruitmentService;
+import getjobs.service.*;
 import getjobs.modules.task.dto.TaskUpdatePayload;
 import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;
 import getjobs.modules.task.event.TaskUpdateEvent;
-import getjobs.service.RecruitmentServiceFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -22,7 +19,6 @@ import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -48,7 +44,7 @@ public class BossTaskService {
     private String dataPath;
 
     public BossTaskService(RecruitmentServiceFactory serviceFactory,
-            JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService, ApplicationEventPublisher eventPublisher) {
+                           JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService, ApplicationEventPublisher eventPublisher) {
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;

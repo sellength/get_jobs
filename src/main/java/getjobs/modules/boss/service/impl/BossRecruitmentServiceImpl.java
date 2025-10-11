@@ -13,7 +13,7 @@ import getjobs.modules.boss.BossElementLocators;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.common.enums.JobStatusEnum;
-import getjobs.modules.boss.service.JobFilterService;
+import getjobs.service.JobFilterService;
 import getjobs.modules.boss.service.playwright.BossApiMonitorService;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.ConfigEntity;

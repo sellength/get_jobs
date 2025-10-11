@@ -1,4 +1,4 @@
-package getjobs.modules.boss.service;
+package getjobs.service;
 
 import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.ai.common.enums.AiPlatform;
@@ -34,11 +34,14 @@ public class JobFilterService {
     }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
-        log.info("开始Boss直聘岗位过滤，原始岗位数量: {}", jobDTOS.size());
+        return filterJobs(jobDTOS,config,true);
+    }
 
+    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config, boolean salaryExpected) {
+        log.info("开始Boss直聘岗位过滤，原始岗位数量: {}", jobDTOS.size());
         List<JobDTO> filteredJobDTOS = jobDTOS.stream()
                 .map(job -> {
-                    String filterReason = getFilterReason(job, config);
+                    String filterReason = getFilterReason(job, config, salaryExpected);
                     job.setFilterReason(filterReason);
                     return job;
                 })
@@ -57,6 +60,20 @@ public class JobFilterService {
      * @return 过滤原因，null表示通过过滤
      */
     private String getFilterReason(JobDTO job, ConfigDTO config) {
+        return getFilterReason(job, config, true);
+    }
+
+
+    /**
+     * 获取职位过滤原因
+     *
+     * @param job    职位信息
+     * @param config 配置信息
+     * @param salaryExpected 是否检查薪资
+     *
+     * @return 过滤原因，null表示通过过滤
+     */
+    private String getFilterReason(JobDTO job, ConfigDTO config, boolean salaryExpected) {
         // 检查岗位黑名单
         if (isJobInBlacklist(job)) {
             return "岗位名称包含黑名单关键词";
@@ -72,9 +89,11 @@ public class JobFilterService {
             return "招聘者包含黑名单关键词";
         }
 
-        // 检查薪资
-        if (!isSalaryExpected(job, config)) {
-            return "薪资不符合预期范围";
+        if(salaryExpected){
+            // 检查薪资
+            if (!isSalaryExpected(job, config)) {
+                return "薪资不符合预期范围";
+            }
         }
 
         // 检测HR活跃状态

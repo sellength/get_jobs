@@ -5,8 +5,11 @@ import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.service.JobFilterService;
 import getjobs.modules.liepin.service.LiepinElementLocators;
 import getjobs.modules.liepin.service.playwright.LiePinApiMonitorService;
+import getjobs.repository.entity.ConfigEntity;
+import getjobs.service.ConfigService;
 import getjobs.service.RecruitmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,8 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
 
     private final LiePinApiMonitorService liePinApiMonitorService;
     private final PlaywrightService playwrightService;
+    private final ConfigService configService;
+    private final JobFilterService jobFilterService;
 
     private Page page;
 
@@ -89,7 +94,17 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
 
     @Override
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
-        return jobDTOS; // 暂时不过滤
+        // 从数据库获取猎聘平台的配置，不使用前端传递的config
+        ConfigEntity configEntity = configService.loadByPlatformType(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
+        if (configEntity == null) {
+            log.warn("数据库中未找到猎聘平台配置，跳过过滤");
+            return jobDTOS;
+        }
+
+        // 将ConfigEntity转换为ConfigDTO
+        ConfigDTO dbConfig = convertConfigEntityToDTO(configEntity);
+
+        return jobFilterService.filterJobs(jobDTOS, dbConfig,false);
     }
 
     @Override
@@ -162,6 +177,78 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     @Override
     public void saveData(String dataPath) {
         log.info("猎聘数据保存功能待实现");
+    }
+
+    /**
+     * 将ConfigEntity转换为ConfigDTO
+     * 使用反射创建ConfigDTO实例，因为构造函数是私有的
+     */
+    private ConfigDTO convertConfigEntityToDTO(ConfigEntity entity) {
+        try {
+            // 通过反射创建ConfigDTO实例
+            java.lang.reflect.Constructor<ConfigDTO> constructor = ConfigDTO.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            ConfigDTO dto = constructor.newInstance();
+
+            // 基础字段映射
+            dto.setSayHi(entity.getSayHi());
+            dto.setEnableAIJobMatchDetection(entity.getEnableAIJobMatchDetection());
+            dto.setEnableAIGreeting(entity.getEnableAIGreeting());
+            dto.setFilterDeadHR(entity.getFilterDeadHR());
+            dto.setSendImgResume(entity.getSendImgResume());
+            dto.setKeyFilter(entity.getKeyFilter());
+            dto.setRecommendJobs(entity.getRecommendJobs());
+            dto.setCheckStateOwned(entity.getCheckStateOwned());
+            dto.setResumeImagePath(entity.getResumeImagePath());
+            dto.setResumeContent(entity.getResumeContent());
+            dto.setWaitTime(entity.getWaitTime());
+            dto.setPlatformType(entity.getPlatformType());
+
+            // 列表字段转换为逗号分隔的字符串
+            if (entity.getKeywords() != null) {
+                dto.setKeywords(String.join(",", entity.getKeywords()));
+            }
+            if (entity.getCityCode() != null) {
+                dto.setCityCode(String.join(",", entity.getCityCode()));
+            }
+            if (entity.getIndustry() != null) {
+                dto.setIndustry(String.join(",", entity.getIndustry()));
+            }
+            if (entity.getExperience() != null) {
+                dto.setExperience(String.join(",", entity.getExperience()));
+            }
+            if (entity.getDegree() != null) {
+                dto.setDegree(String.join(",", entity.getDegree()));
+            }
+            if (entity.getScale() != null) {
+                dto.setScale(String.join(",", entity.getScale()));
+            }
+            if (entity.getStage() != null) {
+                dto.setStage(String.join(",", entity.getStage()));
+            }
+            if (entity.getDeadStatus() != null) {
+                dto.setDeadStatus(entity.getDeadStatus());
+            }
+
+            // 期望薪资处理
+            if (entity.getExpectedSalary() != null && entity.getExpectedSalary().size() >= 2) {
+                dto.setMinSalary(entity.getExpectedSalary().get(0));
+                dto.setMaxSalary(entity.getExpectedSalary().get(1));
+            }
+
+            // 其他字段
+            dto.setCustomCityCode(entity.getCustomCityCode());
+            dto.setJobType(entity.getJobType());
+            dto.setSalary(entity.getSalary());
+            dto.setExpectedPosition(entity.getExpectedPosition());
+            dto.setPublishTime(entity.getPublishTime());
+
+            return dto;
+        } catch (Exception e) {
+            log.error("ConfigEntity转换为ConfigDTO失败", e);
+            // 如果转换失败，返回ConfigDTO的单例实例作为备用
+            return ConfigDTO.getInstance();
+        }
     }
 
     private List<JobDTO> collectJobsByCity(String cityCode, String keyword, ConfigDTO config) {

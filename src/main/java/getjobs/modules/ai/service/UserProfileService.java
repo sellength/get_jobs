@@ -39,6 +39,8 @@ public class UserProfileService {
         userProfile.setImprovements(request.getImprovements());
         userProfile.setAvailability(request.getAvailability());
         userProfile.setLinks(request.getLinks());
+        userProfile.setPositionBlacklist(request.getPositionBlacklist());
+        userProfile.setCompanyBlacklist(request.getCompanyBlacklist());
 
         UserProfile saved = userProfileRepository.save(userProfile);
         log.info("保存用户求职信息成功，ID: {}, 角色: {}", saved.getId(), saved.getRole());

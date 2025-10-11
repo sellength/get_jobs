@@ -62,5 +62,15 @@ public class UserProfileRequest {
      * 链接信息（包含github、portfolio等）
      */
     private Map<String, String> links;
+
+    /**
+     * 岗位黑名单
+     */
+    private List<String> positionBlacklist;
+
+    /**
+     * 公司黑名单
+     */
+    private List<String> companyBlacklist;
 }
 

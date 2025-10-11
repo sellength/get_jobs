@@ -84,5 +84,19 @@ public class UserProfile extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     @Convert(converter = JsonMapStringConverter.class)
     private Map<String, String> links;
+
+    /**
+     * 岗位黑名单（以JSON格式存储）
+     */
+    @Column(name = "position_blacklist", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> positionBlacklist;
+
+    /**
+     * 公司黑名单（以JSON格式存储）
+     */
+    @Column(name = "company_blacklist", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> companyBlacklist;
 }
 
