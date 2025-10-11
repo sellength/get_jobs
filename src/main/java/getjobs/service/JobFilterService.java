@@ -18,11 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class JobFilterService {
 
-    private Set<String> blackCompanies = new HashSet<>();
     private Set<String> blackRecruiters = new HashSet<>();
-
-    private Set<String> blackJobs = new HashSet<>();
-
 
     private final JobMatchAiService jobMatchAiService;
 
@@ -130,14 +126,34 @@ public class JobFilterService {
      * 检查岗位是否在黑名单中
      */
     private boolean isJobInBlacklist(JobDTO jobDTO) {
-        return blackJobs.stream().anyMatch(blackJob -> jobDTO.getJobName().contains(blackJob));
+        List<String> positionBlacklist = userProfileRepository.findAll().stream()
+                .findFirst()
+                .map(profile -> profile.getPositionBlacklist())
+                .orElse(Collections.emptyList());
+        
+        if (positionBlacklist == null || positionBlacklist.isEmpty()) {
+            return false;
+        }
+        
+        return positionBlacklist.stream()
+                .anyMatch(blackJob -> jobDTO.getJobName().contains(blackJob));
     }
 
     /**
      * 检查公司是否在黑名单中
      */
     private boolean isCompanyInBlacklist(JobDTO jobDTO) {
-        return blackCompanies.stream().anyMatch(blackCompany -> jobDTO.getCompanyName().contains(blackCompany));
+        List<String> companyBlacklist = userProfileRepository.findAll().stream()
+                .findFirst()
+                .map(profile -> profile.getCompanyBlacklist())
+                .orElse(Collections.emptyList());
+        
+        if (companyBlacklist == null || companyBlacklist.isEmpty()) {
+            return false;
+        }
+        
+        return companyBlacklist.stream()
+                .anyMatch(blackCompany -> jobDTO.getCompanyName().contains(blackCompany));
     }
 
     /**
