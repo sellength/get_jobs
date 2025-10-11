@@ -521,6 +521,18 @@ class Job51ConfigForm {
         // 将updateIndustrySummary方法绑定到实例，供其他方法调用
         this.updateIndustrySummary = updateIndustrySummary;
 
+        // 初始化：将所有子项添加到隐藏的select中，以便后续回填
+        console.log('51job: 初始化行业select，添加所有子项:', children.length);
+        industrySelect.innerHTML = '';
+        children.forEach(child => {
+            const value = child.code ?? child.name ?? '';
+            const label = child.name ?? String(child.code ?? '');
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            industrySelect.appendChild(opt);
+        });
+
         // 渲染左侧一级行业列表
         const renderParentList = (parentList) => {
             parentListContainer.innerHTML = '';
@@ -586,19 +598,7 @@ class Job51ConfigForm {
             
             const selected = new Set(Array.from(industrySelect.selectedOptions).map(o => o.value));
             
-            // 更新隐藏的select
-            industrySelect.innerHTML = '';
-            children.forEach(child => {
-                const value = child.code ?? child.name ?? '';
-                const label = child.name ?? String(child.code ?? '');
-                const opt = document.createElement('option');
-                opt.value = value;
-                opt.textContent = label;
-                if (selected.has(value)) opt.selected = true;
-                industrySelect.appendChild(opt);
-            });
-            
-            // 渲染复选框列表
+            // 渲染复选框列表（不再重建select，因为所有选项已在初始化时添加）
             childList.forEach(child => {
                 const value = child.code ?? child.name ?? '';
                 const label = child.name ?? String(child.code ?? '');
@@ -613,6 +613,15 @@ class Job51ConfigForm {
                 const checkbox = checkDiv.querySelector('input[type="checkbox"]');
                 checkbox.addEventListener('change', (e) => {
                     e.stopPropagation(); // 阻止事件冒泡，防止dropdown关闭
+                    
+                    // 限制最多选择5个
+                    const currentSelected = Array.from(industrySelect.selectedOptions);
+                    if (checkbox.checked && currentSelected.length >= 5) {
+                        checkbox.checked = false;
+                        this.showToast('最多只能选择5个行业', 'warning');
+                        return;
+                    }
+                    
                     const option = Array.from(industrySelect.options).find(o => o.value === value);
                     if (option) option.selected = checkbox.checked;
                     updateIndustrySummary();

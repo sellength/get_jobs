@@ -1568,6 +1568,14 @@
                         `;
                         const checkbox = item.querySelector('input[type="checkbox"]');
                         checkbox.addEventListener('change', () => {
+                            // 限制最多选择3个
+                            const selectedCount = Array.from(industrySelect.selectedOptions).length;
+                            if (checkbox.checked && selectedCount >= 3) {
+                                checkbox.checked = false;
+                                CommonUtils.showToast('最多只能选择3个行业', 'warning');
+                                return;
+                            }
+                            
                             // 同步到隐藏select
                             const option = Array.from(industrySelect.options).find(o => o.value === value);
                             if (option) option.selected = checkbox.checked;
