@@ -533,6 +533,9 @@ class TaskStatusUpdater {
                 applyStatus.textContent = '可开始投递';
             }
         }
+        
+        // 同步登录状态到对应平台的配置表单实例
+        this.syncLoginStatusToConfigForm(platform, platformPrefix);
     }
 
     // 禁用后续步骤
@@ -583,6 +586,37 @@ class TaskStatusUpdater {
             if (applyStatus) {
                 applyStatus.textContent = '等待登录';
             }
+        }
+        
+        // 同步登录状态到对应平台的配置表单实例
+        this.syncLoginStatusToConfigForm(platform, platformPrefix);
+    }
+    
+    // 同步登录状态到对应平台的配置表单实例
+    syncLoginStatusToConfigForm(platform, platformPrefix) {
+        try {
+            // 根据平台同步状态到对应的配置表单实例
+            if (platform === 'LIEPIN' && window.liepinConfigApp) {
+                // 触发猎聘配置表单刷新状态
+                if (typeof window.liepinConfigApp.fetchAllTaskStatus === 'function') {
+                    window.liepinConfigApp.fetchAllTaskStatus();
+                    console.log('已同步登录状态到猎聘配置表单');
+                }
+            } else if (platform === 'ZHILIAN_ZHAOPIN' && window.zhilianConfigApp) {
+                // 触发智联配置表单刷新状态
+                if (typeof window.zhilianConfigApp.fetchAllTaskStatus === 'function') {
+                    window.zhilianConfigApp.fetchAllTaskStatus();
+                    console.log('已同步登录状态到智联配置表单');
+                }
+            } else if (platform === 'JOB_51' && window.job51ConfigApp) {
+                // 触发51job配置表单刷新状态
+                if (typeof window.job51ConfigApp.fetchAllTaskStatus === 'function') {
+                    window.job51ConfigApp.fetchAllTaskStatus();
+                    console.log('已同步登录状态到51job配置表单');
+                }
+            }
+        } catch (error) {
+            console.warn('同步登录状态到配置表单失败:', error);
         }
     }
 }

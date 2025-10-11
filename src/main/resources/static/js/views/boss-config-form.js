@@ -25,6 +25,8 @@
             this.bindEvents();
             // 先加载字典数据，再加载配置数据，确保下拉框已准备好
             this.loadDataSequentially();
+            // 初始化时启动状态轮询，确保能及时获取到登录状态
+            this.startStatusPolling();
         }
 
         initializeTagsInput() {
@@ -1188,11 +1190,27 @@
 
         // 检查是否已登录（基于最新的任务状态缓存）
         isLoggedIn() {
-            if (!this.latestTaskStatus) return false;
-            const loginStatus = this.latestTaskStatus.login;
-            // 后端返回的字段是 status，不是 state
-            const state = loginStatus?.status || loginStatus?.state;
-            return loginStatus && state === 'SUCCESS';
+            // 优先检查缓存的任务状态
+            if (this.latestTaskStatus) {
+                const loginStatus = this.latestTaskStatus.login;
+                // 后端返回的字段是 status，不是 state
+                const state = loginStatus?.status || loginStatus?.state;
+                if (loginStatus && state === 'SUCCESS') {
+                    return true;
+                }
+            }
+            
+            // 兼容：检查UI状态（处理app.js已更新UI但本地状态未同步的情况）
+            const loginStatusEl = document.getElementById('loginStatus');
+            if (loginStatusEl) {
+                const statusText = loginStatusEl.textContent.trim();
+                // 如果状态文本包含"成功"或"完成"，也认为已登录
+                if (statusText.includes('成功') || statusText.includes('完成') || statusText.includes('登录状态正常')) {
+                    return true;
+                }
+            }
+            
+            return false;
         }
 
         // 查询所有任务状态

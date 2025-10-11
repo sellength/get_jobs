@@ -618,7 +618,6 @@ class LiepinConfigForm {
     }
 
     async handleLogin() {
-        this.updateButtonState('liepinLoginBtn', 'liepinLoginStatus', '执行中...', true);
         try {
             const response = await fetch('/api/liepin/task/login', {
                 method: 'POST',
@@ -629,34 +628,23 @@ class LiepinConfigForm {
             if (result.success) {
                 this.taskStates.loginTaskId = result.taskId;
                 this.showToast('猎聘登录任务已提交');
-                // 启动状态轮询
-                this.startStatusPolling();
             } else {
-                this.updateButtonState('liepinLoginBtn', 'liepinLoginStatus', '登录失败', false);
                 this.showToast(result.message || '登录失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('liepinLoginBtn', 'liepinLoginStatus', '登录失败', false);
             this.showToast('登录接口调用失败: ' + error.message, 'danger');
         }
     }
 
-    // 手动确认登录
+    // 手动确认登录 - 由app.js统一处理UI状态
     handleManualLogin() {
+        // 标记任务ID，供其他逻辑使用
         this.taskStates.loginTaskId = 'manual_login_' + Date.now();
-        this.updateButtonState('liepinLoginBtn', 'liepinLoginStatus', '登录成功', false);
-        this.enableNextStep('liepinCollectBtn', 'liepinCollectStatus', '可开始采集');
-        this.enableNextStep('liepinFilterBtn', 'liepinFilterStatus', '可开始过滤');
-        this.enableNextStep('liepinApplyBtn', 'liepinApplyStatus', '可开始投递');
+        // UI状态更新由app.js的TaskStatusUpdater统一处理
         this.showToast('猎聘已标记为登录状态');
     }
 
     async handleCollect() {
-        if (!this.isLoggedIn()) {
-            this.showAlertModal('操作提示', '请先完成登录步骤');
-            return;
-        }
-        this.updateButtonState('liepinCollectBtn', 'liepinCollectStatus', '采集中...', true);
         try {
             const response = await fetch('/api/liepin/task/collect', {
                 method: 'POST',
@@ -667,24 +655,15 @@ class LiepinConfigForm {
             if (result.success) {
                 this.taskStates.collectTaskId = result.taskId;
                 this.showToast('猎聘采集任务已提交');
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
             } else {
-                this.updateButtonState('liepinCollectBtn', 'liepinCollectStatus', '采集失败', false);
                 this.showToast(result.message || '采集失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('liepinCollectBtn', 'liepinCollectStatus', '采集失败', false);
             this.showToast('采集接口调用失败: ' + error.message, 'danger');
         }
     }
 
     async handleFilter() {
-        if (!this.isLoggedIn()) {
-            this.showAlertModal('操作提示', '请先完成登录步骤');
-            return;
-        }
-        this.updateButtonState('liepinFilterBtn', 'liepinFilterStatus', '过滤中...', true);
         try {
             const request = { collectTaskId: this.taskStates.collectTaskId, config: this.getCurrentConfig() };
             const response = await fetch('/api/liepin/task/filter', {
@@ -696,28 +675,19 @@ class LiepinConfigForm {
             if (result.success) {
                 this.taskStates.filterTaskId = result.taskId;
                 this.showToast('猎聘过滤任务已提交');
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
             } else {
-                this.updateButtonState('liepinFilterBtn', 'liepinFilterStatus', '过滤失败', false);
                 this.showToast(result.message || '过滤失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('liepinFilterBtn', 'liepinFilterStatus', '过滤失败', false);
             this.showToast('过滤接口调用失败: ' + error.message, 'danger');
         }
     }
 
     handleApply() {
-        if (!this.isLoggedIn()) {
-            this.showAlertModal('操作提示', '请先完成登录步骤');
-            return;
-        }
         this.showConfirmModal('投递确认', '是否执行实际投递？', () => this.executeApply(true), () => this.executeApply(false));
     }
 
     async executeApply(enableActualDelivery) {
-        this.updateButtonState('liepinApplyBtn', 'liepinApplyStatus', '投递中...', true);
         try {
             const request = { filterTaskId: this.taskStates.filterTaskId, config: this.getCurrentConfig(), enableActualDelivery };
             const response = await fetch('/api/liepin/task/deliver', {
@@ -730,14 +700,10 @@ class LiepinConfigForm {
                 this.taskStates.applyTaskId = result.taskId;
                 const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
                 this.showToast(`猎聘${deliveryType}任务已提交`);
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
             } else {
-                this.updateButtonState('liepinApplyBtn', 'liepinApplyStatus', '投递失败', false);
                 this.showToast(result.message || '投递失败', 'danger');
             }
         } catch (error) {
-            this.updateButtonState('liepinApplyBtn', 'liepinApplyStatus', '投递失败', false);
             this.showToast('投递接口调用失败: ' + error.message, 'danger');
         }
     }
@@ -762,168 +728,10 @@ class LiepinConfigForm {
 
     resetTaskFlow() {
         this.showConfirmModal('重置确认', '确定要重置任务流程吗？', () => {
+            // 只重置任务状态数据，UI状态由app.js的TaskStatusUpdater处理
             this.taskStates = { loginTaskId: null, collectTaskId: null, filterTaskId: null, applyTaskId: null };
-            this.stopStatusPolling();
-            this.updateButtonState('liepinLoginBtn', 'liepinLoginStatus', '待执行', false);
-            this.updateButtonState('liepinCollectBtn', 'liepinCollectStatus', '等待登录', true);
-            this.updateButtonState('liepinFilterBtn', 'liepinFilterStatus', '等待登录', true);
-            this.updateButtonState('liepinApplyBtn', 'liepinApplyStatus', '等待登录', true);
             this.showToast('任务流程已重置', 'info');
         });
-    }
-
-    // 启动状态轮询
-    startStatusPolling() {
-        if (this.statusPollingInterval) {
-            return; // 已经在轮询中
-        }
-        
-        console.log('猎聘: 启动任务状态轮询');
-        this.statusPollingInterval = setInterval(() => {
-            this.fetchAllTaskStatus();
-        }, 2000); // 每2秒轮询一次
-        
-        // 立即执行一次
-        this.fetchAllTaskStatus();
-    }
-
-    // 停止状态轮询
-    stopStatusPolling() {
-        if (this.statusPollingInterval) {
-            console.log('猎聘: 停止任务状态轮询');
-            clearInterval(this.statusPollingInterval);
-            this.statusPollingInterval = null;
-        }
-    }
-
-    // 检查是否已登录（基于最新的任务状态缓存）
-    isLoggedIn() {
-        if (!this.latestTaskStatus) return false;
-        const loginStatus = this.latestTaskStatus.login;
-        // 后端返回的字段是 status，不是 state
-        const state = loginStatus?.status || loginStatus?.state;
-        return loginStatus && state === 'SUCCESS';
-    }
-
-    // 查询所有任务状态
-    async fetchAllTaskStatus() {
-        try {
-            const response = await fetch('/api/tasks/status');
-            if (!response.ok) return;
-            
-            const result = await response.json();
-            if (!result) return;
-            
-            // 后端返回的是扁平结构：{ "LIEPIN_LOGIN": {...}, "LIEPIN_COLLECT": {...}, ... }
-            // 需要转换为前端期望的嵌套结构
-            const liepinStatus = {
-                login: result['LIEPIN_LOGIN'],
-                collect: result['LIEPIN_COLLECT'],
-                filter: result['LIEPIN_FILTER'],
-                deliver: result['LIEPIN_DELIVER']
-            };
-            
-            console.log('猎聘: 任务状态数据（转换后）:', liepinStatus);
-            
-            // 缓存最新的任务状态
-            this.latestTaskStatus = liepinStatus;
-            
-            this.updateTaskStatusUI(liepinStatus);
-            
-        } catch (error) {
-            console.warn('猎聘: 查询任务状态失败:', error);
-        }
-    }
-
-    // 更新任务状态UI
-    updateTaskStatusUI(statusData) {
-        // 更新登录任务状态
-        if (statusData.login) {
-            this.updateTaskUI('login', statusData.login);
-        }
-        
-        // 更新采集任务状态
-        if (statusData.collect) {
-            this.updateTaskUI('collect', statusData.collect);
-        }
-        
-        // 更新过滤任务状态
-        if (statusData.filter) {
-            this.updateTaskUI('filter', statusData.filter);
-        }
-        
-        // 更新投递任务状态
-        if (statusData.deliver) {
-            this.updateTaskUI('deliver', statusData.deliver);
-        }
-    }
-
-    // 更新单个任务的UI
-    updateTaskUI(taskType, taskStatus) {
-        const buttonMap = {
-            'login': { btn: 'liepinLoginBtn', status: 'liepinLoginStatus' },
-            'collect': { btn: 'liepinCollectBtn', status: 'liepinCollectStatus' },
-            'filter': { btn: 'liepinFilterBtn', status: 'liepinFilterStatus' },
-            'deliver': { btn: 'liepinApplyBtn', status: 'liepinApplyStatus' }
-        };
-        
-        const uiElements = buttonMap[taskType];
-        if (!uiElements) return;
-        
-        // 后端返回的字段是 status，不是 state
-        // 状态值：STARTED, SUCCESS, FAILURE
-        const state = taskStatus.status || taskStatus.state;
-        const message = taskStatus.message || '';
-        
-        console.log(`猎聘: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
-        
-        switch (state) {
-            case 'STARTED':
-            case 'RUNNING':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true);
-                break;
-            case 'SUCCESS':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false);
-                // 启用下一步
-                if (taskType === 'login') {
-                    this.enableNextStep('liepinCollectBtn', 'liepinCollectStatus', '可开始采集');
-                    this.enableNextStep('liepinFilterBtn', 'liepinFilterStatus', '可开始过滤');
-                    this.enableNextStep('liepinApplyBtn', 'liepinApplyStatus', '可开始投递');
-                }
-                // 如果所有任务都完成，停止轮询
-                if (taskType === 'deliver') {
-                    this.stopStatusPolling();
-                }
-                break;
-            case 'FAILED':
-            case 'FAILURE':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false);
-                this.stopStatusPolling();
-                break;
-            case 'PENDING':
-                // 待执行状态，保持默认
-                break;
-        }
-    }
-
-    updateButtonState(buttonId, statusId, statusText, isLoading) {
-        const button = document.getElementById(buttonId);
-        const status = document.getElementById(statusId);
-        if (button) button.disabled = isLoading;
-        if (status) {
-            status.textContent = statusText;
-            status.className = `badge ms-2 ${isLoading ? 'bg-warning text-dark' : 'bg-success text-white'}`;
-        }
-    }
-
-    enableNextStep(buttonId, statusId, statusText) {
-        const button = document.getElementById(buttonId);
-        const status = document.getElementById(statusId);
-        if (button) button.disabled = false;
-        if (status) {
-            status.textContent = statusText;
-            status.className = 'badge bg-info text-white ms-2';
-        }
     }
 
     showToast(message, variant = 'success') {
