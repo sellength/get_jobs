@@ -274,7 +274,7 @@ public class LiepinElementLocators {
             page.waitForLoadState();
             page.waitForTimeout(2000); // 等待DOM稳定
             
-            // 通过检测"登录/注册"文本来判断登录状态
+            // 方式1: 通过检测"登录/注册"文本来判断登录状态
             // 如果页面中存在"登录/注册"文本，说明用户未登录
             Locator loginText = page.getByText("登录/注册");
             
@@ -283,7 +283,15 @@ public class LiepinElementLocators {
                 return false; // 未登录
             }
             
-            log.info("未检测到'登录/注册'文本，判定为已登录状态");
+            // 方式2: 检查是否跳转到登录页面（通过登录框判断）
+            // 如果页面中存在 login-box 元素，说明在登录页面，用户未登录
+            Locator loginBox = page.locator("div.login-box");
+            if (loginBox.count() > 0 && loginBox.first().isVisible()) {
+                log.info("检测到登录页面容器（login-box），判定为未登录状态");
+                return false; // 未登录
+            }
+            
+            log.info("未检测到登录相关元素，判定为已登录状态");
             return true; // 已登录
             
         } catch (Exception e) {
