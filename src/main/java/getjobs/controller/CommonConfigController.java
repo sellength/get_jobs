@@ -9,9 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 公共配置控制器
@@ -75,11 +77,33 @@ public class CommonConfigController {
 
     /**
      * 转换为字符串列表
+     * 支持以下格式：
+     * 1. List 类型直接返回
+     * 2. String 类型按逗号分隔
+     * 3. 其他类型尝试用 ObjectMapper 转换
      */
     @SuppressWarnings("unchecked")
     private List<String> convertToList(Object value) {
         if (value == null) return null;
-        if (value instanceof List) return (List<String>) value;
+        
+        // 如果已经是 List，直接返回
+        if (value instanceof List) {
+            return (List<String>) value;
+        }
+        
+        // 如果是字符串，按逗号分隔
+        if (value instanceof String) {
+            String strValue = (String) value;
+            if (strValue.trim().isEmpty()) {
+                return List.of();
+            }
+            return Arrays.stream(strValue.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        }
+        
+        // 其他类型尝试用 ObjectMapper 转换
         return objectMapper.convertValue(value, List.class);
     }
 }

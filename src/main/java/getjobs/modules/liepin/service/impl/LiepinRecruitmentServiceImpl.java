@@ -257,33 +257,76 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
         
         List<JobDTO> jobDTOS = new ArrayList<>();
         
-        try {
-            page.navigate(searchUrl);
-            // 等待页面加载
-            page.waitForLoadState();
-            
-            // 从第1页开始循环点击分页，浏览所有岗位
-            int pageNumber = 1;
-            while (LiepinElementLocators.clickPageNumber(page, pageNumber)) {
-                log.info("正在采集第 {} 页的职位", pageNumber);
-                
-                // 等待5-10秒，确保API响应被拦截并完成数据入库
-                try {
-                    int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
-                    log.info("等待 {} 秒以完成数据采集和入库", waitSeconds);
-                    Thread.sleep(waitSeconds * 1000L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("等待过程被中断: {}", e.getMessage());
+        // 重试机制：最多重试3次
+        int maxRetries = 3;
+        int retryCount = 0;
+        boolean success = false;
+        
+        while (retryCount < maxRetries && !success) {
+            try {
+                // 检查Page是否可用
+                if (page.isClosed()) {
+                    log.error("Page对象已关闭，无法继续采集");
+                    break;
                 }
+                
+                // 导航到搜索页面，增加超时设置
+                log.info("正在导航到搜索页面 (尝试 {}/{})", retryCount + 1, maxRetries);
+                page.navigate(searchUrl, new Page.NavigateOptions().setTimeout(60000));
+                
+                // 等待页面加载完成
+                page.waitForLoadState();
+                
+                // 额外等待，确保页面完全加载
+                page.waitForTimeout(2000);
+                
+                // 从第1页开始循环点击分页，浏览所有岗位
+                int pageNumber = 1;
+                while (LiepinElementLocators.clickPageNumber(page, pageNumber)) {
+                    log.info("正在采集第 {} 页的职位", pageNumber);
+                    
+                    // 等待5-10秒，确保API响应被拦截并完成数据入库
+                    try {
+                        int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
+                        log.info("等待 {} 秒以完成数据采集和入库", waitSeconds);
+                        Thread.sleep(waitSeconds * 1000L);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        log.warn("等待过程被中断: {}", e.getMessage());
+                        break;
+                    }
 
-                pageNumber++;
+                    pageNumber++;
+                }
+                
+                log.info("所有分页已遍历完成，共 {} 页", pageNumber - 1);
+                success = true;
+                
+            } catch (com.microsoft.playwright.PlaywrightException e) {
+                retryCount++;
+                if (e.getMessage() != null && e.getMessage().contains("Cannot find parent object")) {
+                    log.warn("采集过程中出现响应对象清理问题 (尝试 {}/{}): {}", retryCount, maxRetries, e.getMessage());
+                    // 这种错误可能是暂时的，等待一下再重试
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    log.error("采集城市: {}, 关键词: {} 的职位失败 (尝试 {}/{})", cityCode, keyword, retryCount, maxRetries, e);
+                }
+                
+                if (retryCount >= maxRetries) {
+                    log.error("达到最大重试次数，采集失败");
+                }
+            } catch (Exception e) {
+                retryCount++;
+                log.error("采集城市: {}, 关键词: {} 的职位失败 (尝试 {}/{})", cityCode, keyword, retryCount, maxRetries, e);
+                
+                if (retryCount >= maxRetries) {
+                    log.error("达到最大重试次数，采集失败");
+                }
             }
-            
-            log.info("所有分页已遍历完成，共 {} 页", pageNumber - 1);
-            
-        } catch (Exception e) {
-            log.error("采集城市: {}, 关键词: {} 的职位失败", cityCode, keyword, e);
         }
         
         log.info("城市: {}, 关键词: {} 的职位采集完成，共{}个职位", cityCode, keyword, jobDTOS.size());

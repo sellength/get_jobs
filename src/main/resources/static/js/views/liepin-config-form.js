@@ -31,7 +31,6 @@ class LiepinConfigForm {
         document.getElementById('liepinSaveConfigBtn')?.addEventListener('click', () => this.handleSaveConfig());
         document.getElementById('liepinBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
         document.getElementById('liepinLoginBtn')?.addEventListener('click', () => this.handleLogin());
-        document.getElementById('liepinLoginManualBtn')?.addEventListener('click', () => this.handleManualLogin());
         document.getElementById('liepinCollectBtn')?.addEventListener('click', () => this.handleCollect());
         document.getElementById('liepinFilterBtn')?.addEventListener('click', () => this.handleFilter());
         document.getElementById('liepinApplyBtn')?.addEventListener('click', () => this.handleApply());

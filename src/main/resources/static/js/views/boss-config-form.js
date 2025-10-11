@@ -57,9 +57,6 @@
             document.getElementById('loginBtn')?.addEventListener('click', () => {
                 this.handleLogin();
             });
-            document.getElementById('loginManualBtn')?.addEventListener('click', () => {
-                this.handleManualLogin();
-            });
             document.getElementById('collectBtn')?.addEventListener('click', () => {
                 this.handleCollect();
             });
@@ -924,16 +921,6 @@
                 this.updateButtonState('loginBtn', 'loginStatus', '登录失败', false, 'danger');
                 CommonUtils.showToast('登录接口调用失败: ' + error.message, 'danger');
             }
-        }
-
-        // 手动确认登录
-        handleManualLogin() {
-            this.taskStates.loginTaskId = 'manual_login_' + Date.now();
-            this.updateButtonState('loginBtn', 'loginStatus', '登录成功', false, 'success');
-            this.enableNextStep('collectBtn', 'collectStatus', '可开始采集');
-            this.enableNextStep('filterBtn', 'filterStatus', '可开始过滤');
-            this.enableNextStep('deliverBtn', 'deliverStatus', '可开始投递');
-            CommonUtils.showToast('已手动标记为登录状态', 'success');
         }
 
         // 处理采集

@@ -52,18 +52,6 @@ class Job51ConfigForm {
             this.handleLogin();
         });
 
-        // 手动确认登录按钮
-        const job51LoginManualBtn = document.getElementById('job51LoginManualBtn');
-        if (job51LoginManualBtn) {
-            job51LoginManualBtn.addEventListener('click', () => {
-                console.log('51job手动登录按钮被点击');
-                this.handleManualLogin();
-            });
-            console.log('已绑定51job手动登录按钮事件');
-        } else {
-            console.warn('未找到51job手动登录按钮元素');
-        }
-
         document.getElementById('job51CollectBtn')?.addEventListener('click', () => {
             this.handleCollect();
         });

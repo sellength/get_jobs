@@ -63,22 +63,41 @@ public class LiePinApiMonitorService {
 
     private void handleLiePinSearchResponse(Response response) {
         try {
+            // 先尝试获取基本信息，这些方法相对安全
+            String url = response.url();
+            int status = response.status();
+            
             log.info("=== 猎聘职位搜索响应拦截 ===");
-            log.info("响应状态: {}", response.status());
-            log.info("响应URL: {}", response.url());
+            log.info("响应状态: {}", status);
+            log.info("响应URL: {}", url);
 
             // 先检查响应是否有效
             if (response.ok()) {
-                String body = response.text();
-                log.info("响应体长度: {} 字符", body.length());
-                parseAndSaveLiePinData(body, "猎聘职位搜索");
+                // 使用 body() 方法代替 text()，并添加超时保护
+                try {
+                    byte[] bodyBytes = response.body();
+                    String body = new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8);
+                    log.info("响应体长度: {} 字符", body.length());
+                    parseAndSaveLiePinData(body, "猎聘职位搜索");
+                } catch (PlaywrightException e) {
+                    // 响应体读取失败，可能是请求对象已清理
+                    if (e.getMessage() != null && e.getMessage().contains("Cannot find parent object")) {
+                        log.debug("响应体读取失败(请求对象已清理)，这是正常现象，可忽略");
+                    } else {
+                        log.warn("读取响应体失败: {}", e.getMessage());
+                    }
+                }
             } else {
-                log.warn("响应状态不正常: {}", response.status());
+                log.warn("响应状态不正常: {}", status);
             }
             log.info("==========================");
         } catch (PlaywrightException e) {
-            // 响应对象已经不存在或无法访问
-            log.debug("读取猎聘响应体失败(响应对象可能已清理): {}", e.getMessage());
+            // 响应对象基本信息读取失败
+            if (e.getMessage() != null && e.getMessage().contains("Cannot find parent object")) {
+                log.debug("响应对象访问失败(已被清理)，这是正常现象，可忽略");
+            } else {
+                log.warn("读取猎聘响应失败: {}", e.getMessage());
+            }
         } catch (Exception e) {
             log.error("处理猎聘响应时发生异常: {}", e.getMessage(), e);
         }

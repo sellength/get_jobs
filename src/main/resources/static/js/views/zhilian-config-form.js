@@ -33,7 +33,6 @@ class ZhilianConfigForm {
         document.getElementById('zhilianBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
 
         document.getElementById('zhilianLoginBtn')?.addEventListener('click', () => this.handleLogin());
-        document.getElementById('zhilianLoginManualBtn')?.addEventListener('click', () => this.handleManualLogin());
         document.getElementById('zhilianCollectBtn')?.addEventListener('click', () => this.handleCollect());
         document.getElementById('zhilianFilterBtn')?.addEventListener('click', () => this.handleFilter());
         document.getElementById('zhilianApplyBtn')?.addEventListener('click', () => this.handleApply());
