@@ -439,7 +439,7 @@
                                             </div>
 
                                             <!-- Resume Content -->
-                                            <div class="mb-2">
+                                            <!-- <div class="mb-2">
                                                 <label for="resumeContentTextArea" class="form-label fw-semibold small">
                                                     简历内容摘要 <span class="text-muted">(可选)</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
@@ -448,7 +448,7 @@
                                                 </label>
                                                 <textarea class="form-control form-control-sm" id="resumeContentTextArea" rows="3"
                                                           placeholder="在此输入详细的简历内容...（可选）"></textarea>
-                                            </div>
+                                            </div> -->
 
                                             <!-- Greeting Content -->
                                             <div class="mb-2">
@@ -591,25 +591,25 @@
 
                                             <div class="form-check mb-2">
                                                 <input class="form-check-input" type="checkbox"
-                                                       id="enableAIGreetingCheckBox">
-                                                <label class="form-check-label fw-semibold small"
+                                                       id="enableAIGreetingCheckBox" disabled>
+                                                <label class="form-check-label fw-semibold small text-muted"
                                                        for="enableAIGreetingCheckBox">
-                                                    AI智能打招呼
+                                                    AI智能打招呼 <span class="badge bg-secondary">暂时禁用</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将使用AI智能生成个性化的打招呼内容，提高HR回复率"></i>
+                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
 
                                             <div class="form-check mb-2">
                                                 <input class="form-check-input" type="checkbox"
-                                                       id="checkStateOwnedCheckBox">
-                                                <label class="form-check-label fw-semibold small"
+                                                       id="checkStateOwnedCheckBox" disabled>
+                                                <label class="form-check-label fw-semibold small text-muted"
                                                        for="checkStateOwnedCheckBox">
-                                                    国企识别检查
+                                                    国企识别检查 <span class="badge bg-secondary">暂时禁用</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将自动识别并标记国有企业职位"></i>
+                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
                                         </div>
@@ -1384,12 +1384,12 @@
                                             </h6>
 
                                             <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="zhilianEnableAIJobMatchCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="zhilianEnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测
+                                                <input class="form-check-input" type="checkbox" id="zhilianEnableAIJobMatchCheckBox" disabled>
+                                                <label class="form-check-label fw-semibold small text-muted" for="zhilianEnableAIJobMatchCheckBox">
+                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将使用AI智能分析职位描述，检测职位与期望的匹配度"></i>
+                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
 
@@ -1977,12 +1977,12 @@
                                             </h6>
 
                                             <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="job51EnableAIJobMatchCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="job51EnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测
+                                                <input class="form-check-input" type="checkbox" id="job51EnableAIJobMatchCheckBox" disabled>
+                                                <label class="form-check-label fw-semibold small text-muted" for="job51EnableAIJobMatchCheckBox">
+                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将使用AI智能分析职位描述，检测职位与期望的匹配度"></i>
+                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
 
@@ -2535,6 +2535,37 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Resume Configuration Card -->
+                                        <div class="config-card mb-2">
+                                            <h6 class="card-title text-primary mb-2">
+                                                <i class="bi bi-file-earmark-text me-2"></i>简历配置
+                                            </h6>
+
+                                            <!-- Resume Image Path -->
+                                            <div class="mb-2">
+                                                <label for="liepinResumeImagePathField" class="form-label fw-semibold small">
+                                                    简历图片路径 <span class="text-muted">(可选)</span>
+                                                    <i class="bi bi-question-circle text-muted ms-1"
+                                                       data-bs-toggle="tooltip"
+                                                       title="设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等）"></i>
+                                                </label>
+                                                <input type="text" class="form-control form-control-sm" id="liepinResumeImagePathField"
+                                                       placeholder="/Users/zhang/my_resume.jpg">
+                                            </div>
+
+                                            <!-- Greeting Content -->
+                                            <div class="mb-2">
+                                                <label for="liepinSayHiTextArea" class="form-label fw-semibold small">
+                                                    打招呼内容
+                                                    <i class="bi bi-question-circle text-muted ms-1"
+                                                       data-bs-toggle="tooltip"
+                                                       title="设置与HR打招呼时的自动发送内容，建议个性化定制，增加回复率"></i>
+                                                </label>
+                                                <textarea class="form-control form-control-sm" id="liepinSayHiTextArea" rows="2"
+                                                          placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2574,12 +2605,12 @@
                                             </h6>
 
                                             <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="liepinEnableAIJobMatchCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="liepinEnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测
+                                                <input class="form-check-input" type="checkbox" id="liepinEnableAIJobMatchCheckBox" disabled>
+                                                <label class="form-check-label fw-semibold small text-muted" for="liepinEnableAIJobMatchCheckBox">
+                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将使用AI智能分析职位描述，检测职位与期望的匹配度"></i>
+                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
 

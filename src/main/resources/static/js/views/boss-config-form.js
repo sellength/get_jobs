@@ -204,7 +204,6 @@
                 minSalary: document.getElementById('minSalaryField').value,
                 maxSalary: document.getElementById('maxSalaryField').value,
                 resumeImagePath: document.getElementById('resumeImagePathField').value,
-                resumeContent: document.getElementById('resumeContentTextArea').value,
                 sayHi: document.getElementById('sayHiTextArea').value,
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox').checked,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox').checked,
@@ -729,7 +728,6 @@
                 minSalary: 'minSalaryField',
                 maxSalary: 'maxSalaryField',
                 resumeImagePath: 'resumeImagePathField',
-                resumeContent: 'resumeContentTextArea',
                 sayHi: 'sayHiTextArea',
                 filterDeadHR: 'filterDeadHRCheckBox',
                 sendImgResume: 'sendImgResumeCheckBox',
@@ -1085,7 +1083,6 @@
                     document.getElementById('maxSalaryField')?.value || '0'
                 ],
                 resumeImagePath: document.getElementById('resumeImagePathField')?.value || '',
-                resumeContent: document.getElementById('resumeContentTextArea')?.value || '',
                 sayHi: document.getElementById('sayHiTextArea')?.value || '',
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox')?.checked || false,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
