@@ -368,7 +368,7 @@ public class LiepinElementLocators {
                 // 等待当前页码变为激活状态
                 String activePageSelector = "li.ant-pagination-item-" + pageNumber + ".ant-pagination-item-active";
                 page.waitForSelector("div.list-pagination-box " + activePageSelector, 
-                    new Page.WaitForSelectorOptions().setTimeout(5000));
+                    new Page.WaitForSelectorOptions().setTimeout(10000));
                 log.info("成功点击页码: {}，页面已切换", pageNumber);
             } catch (Exception e) {
                 log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
