@@ -3,10 +3,11 @@ package getjobs.modules.liepin.service.impl;
 import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.modules.liepin.service.LiepinElementLocators;
 import getjobs.modules.liepin.service.playwright.LiePinApiMonitorService;
 import getjobs.service.RecruitmentService;
-import getjobs.utils.PlaywrightUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -24,6 +26,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class LiepinRecruitmentServiceImpl implements RecruitmentService {
 
     private final LiePinApiMonitorService liePinApiMonitorService;
+    private final PlaywrightService playwrightService;
+
+    private Page page;
 
     private static final String HOME_URL = RecruitmentPlatformEnum.LIEPIN.getHomeUrl();
     private static final String SEARCH_JOB_URL = "https://www.liepin.com/zhaopin/?";
@@ -35,6 +40,7 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
 
     @PostConstruct
     public void init() {
+        this.page = playwrightService.getPage(RecruitmentPlatformEnum.LIEPIN);
         liePinApiMonitorService.init();
     }
 
@@ -42,17 +48,15 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     public boolean login(ConfigDTO config) {
         log.info("开始猎聘登录检查");
         try {
-            Page page = PlaywrightUtil.getPageObject();
             page.navigate(HOME_URL);
             // 这里的登录检查逻辑需要根据猎聘的页面元素进行调整
-            // if (LiepinElementLocators.isLoginRequired(page)) {
-            //     log.info("需要登录，开始登录流程");
-            //     return performLogin();
-            // } else {
-            //     log.info("猎聘已登录");
-            //     return true;
-            // }
-            return performLogin(); // 暂时总是执行登录
+            if (LiepinElementLocators.isLoginRequired(page)) {
+                log.info("需要登录，开始登录流程");
+                return performLogin();
+            } else {
+                log.info("猎聘已登录");
+                return true;
+            }
         } catch (Exception e) {
             log.error("猎聘登录失败", e);
             return false;
@@ -92,20 +96,53 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     public int deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
         log.info("开始执行猎聘岗位投递操作，待投递岗位数量: {}", jobDTOS.size());
         AtomicInteger successCount = new AtomicInteger(0);
-        try (Page jobPage = PlaywrightUtil.getPageObject().context().newPage()) {
+        try (Page jobPage = page.context().newPage()) {
             for (JobDTO jobDTO : jobDTOS) {
                 try {
                     log.info("正在投递岗位: {}", jobDTO.getJobName());
                     jobPage.navigate(jobDTO.getHref());
                     jobPage.waitForLoadState();
-                    // 投递逻辑需要根据猎聘的页面元素进行调整
-                    // if (LiepinElementLocators.clickApplyButton(jobPage)) {
-                    //     log.info("岗位投递成功: {}", jobDTO.getJobName());
-                    //     successCount.getAndIncrement();
-                    // } else {
-                    //     log.warn("岗位投递失败或已投递: {}", jobDTO.getJobName());
-                    // }
-                    PlaywrightUtil.randomSleep(3, 5);
+                    
+                    // 等待页面加载完成
+                    jobPage.waitForTimeout(2000);
+                    
+                    // 1. 点击"聊一聊"按钮
+                    if (LiepinElementLocators.clickChatWithRecruiter(jobPage)) {
+                        // 等待聊天窗口打开
+                        jobPage.waitForTimeout(2000);
+                        
+                        // 获取打招呼内容
+                        String greetingMessage = config.getSayHi();
+                        if (greetingMessage == null || greetingMessage.trim().isEmpty()) {
+                            greetingMessage = "您好，我对这个职位很感兴趣，期待与您进一步沟通！";
+                            log.warn("未配置打招呼内容，使用默认消息");
+                        }
+                        
+                        // 2. 输入打招呼内容
+                        if (LiepinElementLocators.inputChatMessage(jobPage, greetingMessage)) {
+                            // 等待输入完成
+                            jobPage.waitForTimeout(1000);
+                            
+                            // 3. 点击发送按钮
+                            if (LiepinElementLocators.clickSendButton(jobPage)) {
+                                log.info("岗位投递成功: {}", jobDTO.getJobName());
+                                successCount.getAndIncrement();
+                            } else {
+                                log.warn("发送消息失败: {}", jobDTO.getJobName());
+                            }
+                        } else {
+                            log.warn("输入打招呼内容失败: {}", jobDTO.getJobName());
+                        }
+                    } else {
+                        log.warn("点击聊一聊按钮失败或HR不可聊天: {}", jobDTO.getJobName());
+                    }
+                    
+                    // 随机等待 3-5 秒
+                    try {
+                        Thread.sleep((3 + new Random().nextInt(3)) * 1000L);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 } catch (Exception e) {
                     log.error("投递岗位 {} 时发生异常: {}", jobDTO.getJobName(), e.getMessage());
                 }
@@ -130,16 +167,38 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     private List<JobDTO> collectJobsByCity(String cityCode, String keyword, ConfigDTO config) {
         String searchUrl = buildSearchUrl(cityCode, keyword, config);
         log.info("开始采集，城市: {}，关键词: {}，URL: {}", cityCode, keyword, searchUrl);
+        
         List<JobDTO> jobDTOS = new ArrayList<>();
-        Page page = PlaywrightUtil.getPageObject();
+        
         try {
             page.navigate(searchUrl);
+            // 等待页面加载
             page.waitForLoadState();
-            // 采集逻辑需要根据猎聘的页面元素进行调整
-            // jobDTOS.addAll(LiepinElementLocators.extractJobs(page));
+            
+            // 从第1页开始循环点击分页，浏览所有岗位
+            int pageNumber = 1;
+            while (LiepinElementLocators.clickPageNumber(page, pageNumber)) {
+                log.info("正在采集第 {} 页的职位", pageNumber);
+                
+                // 等待5-10秒，确保API响应被拦截并完成数据入库
+                try {
+                    int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
+                    log.info("等待 {} 秒以完成数据采集和入库", waitSeconds);
+                    Thread.sleep(waitSeconds * 1000L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("等待过程被中断: {}", e.getMessage());
+                }
+
+                pageNumber++;
+            }
+            
+            log.info("所有分页已遍历完成，共 {} 页", pageNumber - 1);
+            
         } catch (Exception e) {
             log.error("采集城市: {}, 关键词: {} 的职位失败", cityCode, keyword, e);
         }
+        
         log.info("城市: {}, 关键词: {} 的职位采集完成，共{}个职位", cityCode, keyword, jobDTOS.size());
         return jobDTOS;
     }
@@ -192,14 +251,14 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     }
 
     private boolean performLogin() {
-        Page page = PlaywrightUtil.getPageObject();
         try {
             page.navigate(HOME_URL);
+
             log.info("等待用户手动登录...");
-            // 登录逻辑需要根据猎聘的页面元素进行调整
-            // while (!LiepinElementLocators.isUserLoggedIn(page)) {
-            //     PlaywrightUtil.sleep(2);
-            // }
+//             登录逻辑需要根据猎聘的页面元素进行调整
+             while (!LiepinElementLocators.isUserLoggedIn(page)) {
+                 Thread.sleep((3 + new Random().nextInt(3)) * 1000L);
+             }
             log.info("登录成功");
             return true;
         } catch (Exception e) {

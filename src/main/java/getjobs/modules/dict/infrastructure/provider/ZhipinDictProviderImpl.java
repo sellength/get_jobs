@@ -9,8 +9,10 @@ import getjobs.modules.dict.api.DictItem;
 import getjobs.modules.dict.domain.DictProvider;
 import getjobs.modules.dict.infrastructure.provider.dto.boss.CityGroupData;
 import getjobs.modules.dict.infrastructure.provider.dto.ConditionsData;
+import getjobs.modules.dict.infrastructure.provider.dto.boss.IndustryData;
 import getjobs.modules.dict.infrastructure.provider.dto.boss.ZhipinResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -30,6 +32,9 @@ public class ZhipinDictProviderImpl implements DictProvider {
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+
+    @Value("${boss.dict-industry-json}")
+    private String dictIndustryJson;
 
     public ZhipinDictProviderImpl(WebClient webClient, ObjectMapper objectMapper) {
         this.webClient = webClient;
@@ -161,6 +166,34 @@ public class ZhipinDictProviderImpl implements DictProvider {
                                         .map(item -> new DictItem(String.valueOf(item.code()), item.name()))
                                         .collect(Collectors.toList())));
                     }
+                }
+            }
+
+            // 处理行业数据
+            if (dictIndustryJson != null && !dictIndustryJson.isEmpty()) {
+                try {
+                    ZhipinResponse<List<IndustryData>> industryResponse = objectMapper.readValue(dictIndustryJson,
+                            objectMapper.getTypeFactory().constructParametricType(ZhipinResponse.class,
+                                    objectMapper.getTypeFactory().constructCollectionType(List.class, IndustryData.class)));
+
+                    if (industryResponse.code() == 0 && industryResponse.zpData() != null) {
+                        List<DictItem> industryItems = industryResponse.zpData().stream()
+                                .filter(industryData -> industryData.subLevelModelList() != null)
+                                .flatMap(industryData -> industryData.subLevelModelList().stream()
+                                        .map(item -> new DictItem(
+                                                String.valueOf(item.code()), 
+                                                item.name(), 
+                                                null, 
+                                                null, 
+                                                String.valueOf(industryData.code()))))
+                                .collect(Collectors.toList());
+
+                        if (!industryItems.isEmpty()) {
+                            groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(), industryItems));
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("解析行业数据失败: {}", e.getMessage());
                 }
             }
         } catch (Exception e) {

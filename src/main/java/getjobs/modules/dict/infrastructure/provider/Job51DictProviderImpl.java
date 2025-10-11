@@ -113,10 +113,18 @@ public class Job51DictProviderImpl implements DictProvider {
 
             // 处理行业字典
             if (resultBody.getIndustry() != null) {
-                groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(),
-                        resultBody.getIndustry().stream()
-                                .map(item -> new DictItem(item.getId(), item.getValue()))
-                                .toList()));
+                List<DictItem> industryItems = new ArrayList<>();
+                for (var industry : resultBody.getIndustry()) {
+                    // 添加父行业
+                    industryItems.add(new DictItem(industry.getId(), industry.getValue()));
+                    // 添加子行业（带parentCode）
+                    if (industry.getSub() != null) {
+                        for (var sub : industry.getSub()) {
+                            industryItems.add(new DictItem(sub.getId(), sub.getValue(), null, null, industry.getId()));
+                        }
+                    }
+                }
+                groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(), industryItems));
             }
 
             // 处理公司类型字典 - 使用COMPANY_NATURE作为公司类型的key

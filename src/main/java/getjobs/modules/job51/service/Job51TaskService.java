@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Service
 public class Job51TaskService {
 
-    private final PlaywrightManager playwrightManager;
 
     private final RecruitmentServiceFactory serviceFactory;
 
@@ -48,9 +47,8 @@ public class Job51TaskService {
     // 数据目录路径
     private String dataPath;
 
-    public Job51TaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
+    public Job51TaskService(RecruitmentServiceFactory serviceFactory,
             JobService jobService, JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
-        this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
@@ -76,9 +74,6 @@ public class Job51TaskService {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行51job登录操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取51job服务
             RecruitmentService job51Service = serviceFactory.getService(RecruitmentPlatformEnum.JOB_51);
@@ -118,9 +113,6 @@ public class Job51TaskService {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行51job岗位采集操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取51job服务
             RecruitmentService job51Service = serviceFactory.getService(RecruitmentPlatformEnum.JOB_51);

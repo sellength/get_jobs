@@ -72,11 +72,21 @@ class BossConfigApp {
     }
 
     bindPlatformJobRecordsEvents(platform, platformName) {
+        // 平台代码映射到后端使用的枚举名称
+        const platformEnumMap = {
+            'boss': 'BOSS直聘',
+            'zhilian': '智联招聘',
+            'job51': '51job',
+            'liepin': 'LIEPIN'
+        };
+        
+        const backendPlatform = platformEnumMap[platform] || platformName;
+        
         // 重置岗位状态按钮
         const resetBtn = document.getElementById(`${platform}RecordResetBtn`);
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
-                this.handleResetFilter(platform, platformName);
+                this.handleResetFilter(backendPlatform, platformName);
             });
             console.log(`已绑定${platformName}重置岗位状态按钮事件`);
         }
@@ -85,7 +95,7 @@ class BossConfigApp {
         const deleteBtn = document.getElementById(`${platform}RecordDeleteBtn`);
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                this.handleDeleteAllJobs(platform, platformName);
+                this.handleDeleteAllJobs(backendPlatform, platformName);
             });
             console.log(`已绑定${platformName}删除岗位按钮事件`);
         }
@@ -196,7 +206,17 @@ class BossConfigApp {
 
     // 刷新平台数据
     refreshPlatformData(platform) {
-        switch (platform) {
+        // 将后端平台名称映射回前端平台代码
+        const backendToFrontendMap = {
+            'BOSS直聘': 'boss',
+            '智联招聘': 'zhilian',
+            '51job': 'job51',
+            'LIEPIN': 'liepin'
+        };
+        
+        const frontendPlatform = backendToFrontendMap[platform] || platform;
+        
+        switch (frontendPlatform) {
             case 'boss':
                 if (window.bossRecordsRoot && typeof window.bossRecordsRoot.refreshData === 'function') {
                     window.bossRecordsRoot.refreshData();
@@ -434,9 +454,126 @@ class TaskStatusUpdater {
                     case 'FAILED':
                         statusElement.classList.add('bg-danger', 'text-white');
                         break;
+                    case 'SUCCESS':
+                        statusElement.classList.add('bg-success', 'text-white');
+                        break;
+                    case 'FAILURE':
+                        statusElement.classList.add('bg-danger', 'text-white');
+                        break;
                     default:
                         statusElement.classList.add('bg-light', 'text-dark');
                 }
+            }
+
+            // 如果是LOGIN阶段且状态为SUCCESS，自动启用后续步骤
+            if (stage === 'LOGIN' && status === 'SUCCESS') {
+                this.enableNextSteps(platform, platformPrefix);
+            }
+            // 如果是LOGIN阶段且状态为FAILURE，禁用后续步骤
+            if (stage === 'LOGIN' && status === 'FAILURE') {
+                this.disableNextSteps(platform, platformPrefix);
+            }
+        }
+    }
+
+    // 启用登录成功后的后续步骤
+    enableNextSteps(platform, platformPrefix) {
+        let collectBtnId, filterBtnId, applyBtnId;
+        let collectStatusId, filterStatusId, applyStatusId;
+
+        if (platform === 'BOSS_ZHIPIN') {
+            collectBtnId = 'collectBtn';
+            filterBtnId = 'filterBtn';
+            applyBtnId = 'deliverBtn';
+            collectStatusId = 'collectStatus';
+            filterStatusId = 'filterStatus';
+            applyStatusId = 'deliverStatus';
+        } else {
+            collectBtnId = `${platformPrefix}CollectBtn`;
+            filterBtnId = `${platformPrefix}FilterBtn`;
+            applyBtnId = `${platformPrefix}ApplyBtn`;
+            collectStatusId = `${platformPrefix}CollectStatus`;
+            filterStatusId = `${platformPrefix}FilterStatus`;
+            applyStatusId = `${platformPrefix}ApplyStatus`;
+        }
+
+        // 启用按钮
+        const collectBtn = document.getElementById(collectBtnId);
+        const filterBtn = document.getElementById(filterBtnId);
+        const applyBtn = document.getElementById(applyBtnId);
+
+        if (collectBtn) {
+            collectBtn.disabled = false;
+            const collectStatus = document.getElementById(collectStatusId);
+            if (collectStatus && collectStatus.textContent.includes('等待登录')) {
+                collectStatus.textContent = '可开始采集';
+            }
+        }
+
+        if (filterBtn) {
+            filterBtn.disabled = false;
+            const filterStatus = document.getElementById(filterStatusId);
+            if (filterStatus && filterStatus.textContent.includes('等待登录')) {
+                filterStatus.textContent = '可开始过滤';
+            }
+        }
+
+        if (applyBtn) {
+            applyBtn.disabled = false;
+            const applyStatus = document.getElementById(applyStatusId);
+            if (applyStatus && applyStatus.textContent.includes('等待登录')) {
+                applyStatus.textContent = '可开始投递';
+            }
+        }
+    }
+
+    // 禁用后续步骤
+    disableNextSteps(platform, platformPrefix) {
+        let collectBtnId, filterBtnId, applyBtnId;
+        let collectStatusId, filterStatusId, applyStatusId;
+
+        if (platform === 'BOSS_ZHIPIN') {
+            collectBtnId = 'collectBtn';
+            filterBtnId = 'filterBtn';
+            applyBtnId = 'deliverBtn';
+            collectStatusId = 'collectStatus';
+            filterStatusId = 'filterStatus';
+            applyStatusId = 'deliverStatus';
+        } else {
+            collectBtnId = `${platformPrefix}CollectBtn`;
+            filterBtnId = `${platformPrefix}FilterBtn`;
+            applyBtnId = `${platformPrefix}ApplyBtn`;
+            collectStatusId = `${platformPrefix}CollectStatus`;
+            filterStatusId = `${platformPrefix}FilterStatus`;
+            applyStatusId = `${platformPrefix}ApplyStatus`;
+        }
+
+        // 禁用按钮
+        const collectBtn = document.getElementById(collectBtnId);
+        const filterBtn = document.getElementById(filterBtnId);
+        const applyBtn = document.getElementById(applyBtnId);
+
+        if (collectBtn) {
+            collectBtn.disabled = true;
+            const collectStatus = document.getElementById(collectStatusId);
+            if (collectStatus) {
+                collectStatus.textContent = '等待登录';
+            }
+        }
+
+        if (filterBtn) {
+            filterBtn.disabled = true;
+            const filterStatus = document.getElementById(filterStatusId);
+            if (filterStatus) {
+                filterStatus.textContent = '等待登录';
+            }
+        }
+
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            const applyStatus = document.getElementById(applyStatusId);
+            if (applyStatus) {
+                applyStatus.textContent = '等待登录';
             }
         }
     }

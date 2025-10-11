@@ -8,6 +8,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.Cookie;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.BossElementLocators;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.boss.dto.JobDTO;
@@ -20,11 +21,11 @@ import getjobs.repository.entity.JobEntity;
 import getjobs.service.ConfigService;
 import getjobs.service.RecruitmentService;
 import getjobs.utils.JobUtils;
-import getjobs.utils.PlaywrightUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static getjobs.modules.boss.BossElementLocators.*;
@@ -56,13 +58,23 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
     private final BossApiMonitorService bossApiMonitorService;
     private final JobRepository jobRepository;
     private final JobFilterService jobFilterService;
+    private final PlaywrightService playwrightService;
+
+    private Page page;
 
     public BossRecruitmentServiceImpl(ConfigService configService, BossApiMonitorService bossApiMonitorService,
-                                      JobRepository jobRepository, JobFilterService jobFilterService) {
+                                      JobRepository jobRepository, JobFilterService jobFilterService,
+                                      PlaywrightService playwrightService) {
         this.configService = configService;
         this.bossApiMonitorService = bossApiMonitorService;
         this.jobRepository = jobRepository;
         this.jobFilterService = jobFilterService;
+        this.playwrightService = playwrightService;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.page = playwrightService.getPage(RecruitmentPlatformEnum.BOSS_ZHIPIN);
     }
 
     @Override
@@ -76,7 +88,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
 
         try {
             // 使用Playwright打开网站
-            Page page = PlaywrightUtil.getPageObject();
             page.navigate(HOME_URL);
 
             // 检查并加载Cookie
@@ -84,7 +95,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
             if (isCookieValid(cookieData)) {
                 loadCookiesFromString(cookieData);
                 page.reload();
-                PlaywrightUtil.sleep(2);
+                TimeUnit.SECONDS.sleep(2);
             }
 
             // 检查是否需要登录
@@ -149,8 +160,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
         LocalDateTime collectionStartTime = LocalDateTime.now();
 
         try {
-            Page page = PlaywrightUtil.getPageObject();
-
             // 设置推荐岗位接口监听器
             bossApiMonitorService.startMonitoring();
 
@@ -241,7 +250,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 }
 
                 // 投递间隔
-                PlaywrightUtil.sleep(15);
+                TimeUnit.SECONDS.sleep(15);
 
             } catch (Exception e) {
                 log.error("投递岗位失败: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName(), e);
@@ -281,8 +290,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
     @Override
     public boolean isDeliveryLimitReached() {
         try {
-            PlaywrightUtil.sleep(1);
-            Page page = PlaywrightUtil.getPageObject();
+            TimeUnit.SECONDS.sleep(1);
             Locator dialogElement = page.locator(DIALOG_CON);
             if (dialogElement.isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0))) {
                 String text = dialogElement.textContent();
@@ -387,8 +395,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
 
         log.info("开始采集，城市: {}，关键词: {}，URL: {}", cityCode, keyword, url);
 
-        Page page = PlaywrightUtil.getPageObject();
-
         // 设置岗位搜索接口监听器
         bossApiMonitorService.startMonitoring();
 
@@ -442,7 +448,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      */
     private boolean isJobsPresent() {
         try {
-            PlaywrightUtil.waitForElement(JOB_LIST_CONTAINER);
+            BossElementLocators.waitForElement(page, JOB_LIST_CONTAINER);
             return true;
         } catch (Exception e) {
             log.warn("岗位页面检查：页面无岗位元素");
@@ -491,7 +497,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
     @SneakyThrows
     private boolean deliverSingleJob(JobDTO jobDTO, ConfigDTO config) {
         // 在新标签页中打开岗位详情
-        Page jobPage = PlaywrightUtil.getPageObject().context().newPage();
+        Page jobPage = page.context().newPage();
 
         try {
             jobPage.navigate(jobDTO.getHref());
@@ -533,7 +539,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                     log.warn("等待时间配置错误，使用默认值10秒");
                 }
             }
-            PlaywrightUtil.sleep(sleepTime);
+            TimeUnit.SECONDS.sleep(sleepTime);
 
             chatBtn.click();
 
@@ -597,14 +603,14 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 Locator sendBtn = jobPage.locator(SEND_BUTTON).nth(0);
                 if (sendBtn.isVisible(new Locator.IsVisibleOptions().setTimeout(5000.0))) {
                     sendBtn.click();
-                    PlaywrightUtil.sleep(3);
+                    TimeUnit.SECONDS.sleep(3);
 
                     // 发送简历图片
                     if (config.getSendImgResume()) {
                         sendResumeImage(jobPage, config);
                     }
 
-                    PlaywrightUtil.sleep(3);
+                    TimeUnit.SECONDS.sleep(3);
                     return true;
                 }
             }
@@ -654,21 +660,21 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
             }
 
             safeEvaluateJavaScript(jobPage, "window.scrollBy(0, 300)");
-            PlaywrightUtil.sleep(1);
+            TimeUnit.SECONDS.sleep(1);
 
             if (!isPageValid(jobPage)) {
                 return;
             }
 
             safeEvaluateJavaScript(jobPage, "window.scrollBy(0, 300)");
-            PlaywrightUtil.sleep(1);
+            TimeUnit.SECONDS.sleep(1);
 
             if (!isPageValid(jobPage)) {
                 return;
             }
 
             safeEvaluateJavaScript(jobPage, "window.scrollTo(0, 0)");
-            PlaywrightUtil.sleep(1);
+            TimeUnit.SECONDS.sleep(1);
 
         } catch (Exception e) {
             log.error("页面浏览行为模拟出错", e);
@@ -711,9 +717,12 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      * 更新黑名单数据从聊天记录
      */
     private void updateBlacklistFromChat() {
-        Page page = PlaywrightUtil.getPageObject();
         page.navigate(GEEK_CHAT_URL);
-        PlaywrightUtil.sleep(3);
+        try {
+            TimeUnit.SECONDS.sleep(3);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         boolean shouldBreak = false;
         int processedItems = 0;
@@ -758,7 +767,11 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                                 break;
                             }
                             log.debug("页面元素已变更，重试获取聊天记录文本...");
-                            PlaywrightUtil.sleep(1);
+                            try {
+                                TimeUnit.SECONDS.sleep(1);
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
 
@@ -787,11 +800,15 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 Locator loadMoreElement = page.locator(SCROLL_LOAD_MORE);
                 if (loadMoreElement.isVisible()) {
                     loadMoreElement.scrollIntoViewIfNeeded();
-                    PlaywrightUtil.sleep(1);
+                    TimeUnit.SECONDS.sleep(1);
                 } else {
                     safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
-                    PlaywrightUtil.sleep(1);
+                    TimeUnit.SECONDS.sleep(1);
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.debug("聊天记录滚动加载完成");
+                break;
             } catch (Exception e) {
                 log.debug("聊天记录滚动加载完成");
                 break;
@@ -837,8 +854,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      */
     private boolean isLoginRequired() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
-
             Locator loginButton = page.locator(LOGIN_BTNS);
             if (loginButton.isVisible() && loginButton.textContent().contains("登录")) {
                 return true;
@@ -869,9 +884,8 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      */
     @SneakyThrows
     private boolean scanLogin() {
-        Page page = PlaywrightUtil.getPageObject();
         page.navigate(HOME_URL + "/web/user/?ka=header-login");
-        PlaywrightUtil.sleep(5);
+        TimeUnit.SECONDS.sleep(5);
 
         try {
             Locator loginBtn = page.locator(LOGIN_BTN);
@@ -920,10 +934,13 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                     scanner.nextLine();
                     return true;
                 }
+                TimeUnit.SECONDS.sleep(1);
             } catch (IOException e) {
                 // 忽略异常
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
-            PlaywrightUtil.sleep(1);
         }
         return false;
     }
@@ -970,7 +987,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      */
     private String getCurrentCookiesAsJson() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
             List<Cookie> cookies = page.context().cookies();
             JSONArray jsonArray = new JSONArray();
 
@@ -1033,7 +1049,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 cookies.add(cookie);
             }
 
-            PlaywrightUtil.getPageObject().context().addCookies(cookies);
+            page.context().addCookies(cookies);
             log.info("已从配置加载Cookie，共{}个", cookies.size());
         } catch (Exception e) {
             log.error("从配置加载Cookie失败", e);

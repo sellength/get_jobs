@@ -20,12 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveAiPromptBtn) {
         saveAiPromptBtn.addEventListener('click', saveProfileData);
     }
-
-    // AI生成打招呼按钮事件
-    const generateGreetingBtn = document.getElementById('generateGreetingBtn');
-    if (generateGreetingBtn) {
-        generateGreetingBtn.addEventListener('click', generateGreeting);
-    }
 });
 
 // 初始化候选人信息表单
@@ -229,61 +223,6 @@ function loadGreetingContent() {
             greetingField.value = savedGreeting;
         }
     }
-}
-
-// AI生成打招呼
-function generateGreeting() {
-    const profileData = collectProfileData();
-    
-    if (!profileData.role || profileData.years <= 0) {
-        showToast('请先填写基本的角色和工作年限信息', 'warning');
-        return;
-    }
-    
-    // 显示生成中的状态
-    const generateBtn = document.getElementById('generateGreetingBtn');
-    const originalText = generateBtn.innerHTML;
-    generateBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>生成中...';
-    generateBtn.disabled = true;
-    
-    // 发送到后端生成打招呼内容
-    fetch('/api/ai/greeting/generate', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profileData),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(result => {
-        const greetingField = document.getElementById('aiGreetingContent');
-        if (greetingField && result.content) {
-            greetingField.value = result.content;
-            // 保存到本地存储
-            localStorage.setItem('aiGreetingContent', result.content);
-            showToast('AI打招呼内容生成成功！', 'success');
-            
-            // 切换到打招呼页签
-            const greetingTab = document.getElementById('greeting-tab');
-            if (greetingTab) {
-                greetingTab.click();
-            }
-        }
-    })
-    .catch((error) => {
-        console.error('Error generating greeting:', error);
-        showToast('AI生成打招呼失败！', 'error');
-    })
-    .finally(() => {
-        // 恢复按钮状态
-        generateBtn.innerHTML = originalText;
-        generateBtn.disabled = false;
-    });
 }
 
 // 显示提示消息

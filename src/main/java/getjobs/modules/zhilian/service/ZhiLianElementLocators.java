@@ -372,7 +372,8 @@ public class ZhiLianElementLocators {
 
     /**
      * 判断用户是否已成功完成登录
-     * 通过检查用户名元素或退出按钮的存在来判断登录状态
+     * 通过检查页面头部右侧区域是否存在"登录/注册"按钮来判断登录状态
+     * 如果存在"登录/注册"按钮，说明未登录；不存在则说明已登录
      * 
      * @param page Playwright页面对象
      * @return true表示已登录，false表示未登录
@@ -387,42 +388,17 @@ public class ZhiLianElementLocators {
             
             log.debug("检查用户登录状态...");
             
-            // 方法1：检查用户名元素是否存在
-            Locator usernameElement = page.locator(USER_WELCOME_USERNAME);
-            if (usernameElement.isVisible()) {
-                String username = usernameElement.textContent();
-                log.debug("找到用户名元素，用户已登录，用户名: {}", username);
-                return true;
+            // 检查是否存在"登录/注册"按钮
+            // 如果存在该按钮，说明用户未登录；不存在则说明用户已登录
+            Locator loginRegisterButton = page.locator(LOGIN_REGISTER_BUTTON);
+            
+            if (loginRegisterButton.isVisible()) {
+                log.debug("找到'登录/注册'按钮，用户未登录");
+                return false;
             }
             
-            // 方法2：检查退出按钮是否存在（在用户名下拉菜单中）
-            Locator logoutButton = page.locator(LOGOUT_BUTTON);
-            if (logoutButton.isVisible()) {
-                log.debug("找到退出按钮，用户已登录");
-                return true;
-            }
-            
-            // 如果退出按钮不可见，可能需要先点击用户名区域展开菜单
-            if (usernameElement.count() > 0) {
-                try {
-                    // 点击用户名区域展开下拉菜单
-                    usernameElement.click();
-                    page.waitForTimeout(500);
-                    
-                    // 再次检查退出按钮
-                    if (logoutButton.isVisible()) {
-                        log.debug("展开菜单后找到退出按钮，用户已登录");
-                        // 点击其他地方收起菜单
-                        page.click("body");
-                        return true;
-                    }
-                } catch (Exception e) {
-                    log.debug("尝试展开用户菜单失败: {}", e.getMessage());
-                }
-            }
-            
-            log.debug("未找到登录状态标识，用户未登录");
-            return false;
+            log.debug("未找到'登录/注册'按钮，用户已登录");
+            return true;
             
         } catch (Exception e) {
             log.error("检查用户登录状态失败", e);

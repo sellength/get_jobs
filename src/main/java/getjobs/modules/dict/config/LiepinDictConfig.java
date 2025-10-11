@@ -16,4 +16,9 @@ public class LiepinDictConfig {
      * dict-json配置内容
      */
     private String dictJson;
+
+    /**
+     * dict-city-json配置内容
+     */
+    private String dictCityJson;
 }

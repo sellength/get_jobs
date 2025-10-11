@@ -13,6 +13,8 @@
     <link href="css/style.css" rel="stylesheet">
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- 标签输入组件 -->
+    <script src="js/components/tags-input.js"></script>
 </head>
 <body>
 <!-- Header -->
@@ -29,6 +31,12 @@
         <div class="row">
             <div class="col-12">
                 <ul class="nav nav-tabs nav-fill mt-3" id="platformTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="common-config-tab" data-bs-toggle="tab" data-bs-target="#common-config-pane"
+                                type="button" role="tab" aria-controls="common-config-pane" aria-selected="false">
+                            <i class="bi bi-sliders me-1"></i>公共配置
+                        </button>
+                    </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="boss-tab" data-bs-toggle="tab" data-bs-target="#boss-pane"
                                 type="button" role="tab" aria-controls="boss-pane" aria-selected="true">
@@ -62,6 +70,99 @@
 <!-- Main Content -->
 <div class="container-fluid py-2">
     <div class="tab-content" id="platformTabsContent">
+        <!-- 公共配置 -->
+        <div class="tab-pane fade" id="common-config-pane" role="tabpanel" aria-labelledby="common-config-tab">
+            <div class="row g-2" style="height: calc(100vh - 200px);">
+                <div class="col-lg-8 offset-lg-2">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="mb-0 text-dark">
+                                <i class="bi bi-sliders me-2 text-primary"></i>公共配置
+                            </h5>
+                            <small class="text-muted">此配置将应用于所有招聘平台</small>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-column h-100">
+                                <!-- 黑名单配置卡片 -->
+                                <div class="config-card mb-3">
+                                    <h6 class="card-title text-danger mb-3">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>黑名单过滤配置
+                                    </h6>
+
+                                    <!-- 岗位黑名单关键字 -->
+                                    <div class="mb-4">
+                                        <label for="commonJobBlacklistKeywords" class="form-label fw-semibold">
+                                            岗位黑名单关键字
+                                            <i class="bi bi-question-circle text-muted ms-1"
+                                               data-bs-toggle="tooltip"
+                                               title="职位标题或描述中包含这些关键字的岗位将被过滤。输入关键字后按回车添加"></i>
+                                        </label>
+                                        <div class="tags-input-container" id="jobBlacklistTagsContainer">
+                                            <div class="tags-wrapper" id="jobBlacklistTags"></div>
+                                            <input type="text" class="tags-input" id="commonJobBlacklistKeywords" 
+                                                   placeholder="输入关键字后按回车添加">
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            职位标题、职位描述中包含这些关键字的岗位将被自动过滤
+                                        </div>
+                                    </div>
+
+                                    <!-- 公司黑名单关键字 -->
+                                    <div class="mb-4">
+                                        <label for="commonCompanyBlacklistKeywords" class="form-label fw-semibold">
+                                            公司黑名单关键字
+                                            <i class="bi bi-question-circle text-muted ms-1"
+                                               data-bs-toggle="tooltip"
+                                               title="公司名称中包含这些关键字的公司将被过滤。输入关键字后按回车添加"></i>
+                                        </label>
+                                        <div class="tags-input-container" id="companyBlacklistTagsContainer">
+                                            <div class="tags-wrapper" id="companyBlacklistTags"></div>
+                                            <input type="text" class="tags-input" id="commonCompanyBlacklistKeywords" 
+                                                   placeholder="输入关键字后按回车添加">
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            公司名称中包含这些关键字的岗位将被自动过滤
+                                        </div>
+                                    </div>
+
+                                    <!-- 示例说明 -->
+                                    <div class="alert alert-info" role="alert">
+                                        <h6 class="alert-heading">
+                                            <i class="bi bi-lightbulb me-2"></i>使用说明
+                                        </h6>
+                                        <ul class="mb-0 small">
+                                            <li>关键字<strong>不区分大小写</strong>，系统会自动进行模糊匹配</li>
+                                            <li>输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除</li>
+                                            <li>建议将常见的外包、中介类关键字加入黑名单</li>
+                                            <li>保存后将立即生效，应用于所有招聘平台的岗位过滤</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- 操作按钮 -->
+                                <div class="mt-auto">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <button type="button" class="btn btn-primary w-100" id="saveCommonConfigBtn">
+                                                <i class="bi bi-save me-2"></i>保存公共配置
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button type="button" class="btn btn-outline-secondary w-100" id="resetCommonConfigBtn">
+                                                <i class="bi bi-arrow-counterclockwise me-2"></i>重置配置
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Boss直聘 -->
         <div class="tab-pane fade show active" id="boss-pane" role="tabpanel" aria-labelledby="boss-tab">
             <ul class="nav nav-pills mb-2" id="boss-subtabs" role="tablist">
@@ -124,10 +225,21 @@
                                                     目标行业
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="选择目标公司所属行业，可多选，例如：互联网,金融,教育"></i>
+                                                       title="从字典中选择目标行业，支持模糊检索；可多选"></i>
                                                 </label>
-                                                <input type="text" class="form-control form-control-sm" id="industryField"
-                                                       placeholder="互联网, 金融科技, 人工智能">
+                                                <div class="dropdown w-100">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                                                            id="industryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        选择行业
+                                                    </button>
+                                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="industryDropdownBtn" style="min-width: 100%;">
+                                                        <input type="text" class="form-control form-control-sm mb-2" id="industrySearchField"
+                                                               placeholder="输入行业名称进行筛选...">
+                                                        <div id="industryDropdownList" style="max-height: 240px; overflow: auto;"></div>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" id="industrySelectionSummary">未选择</small>
+                                                <select class="form-select form-select-sm d-none" id="industryField" multiple></select>
                                             </div>
 
                                             <!-- City (Bootstrap Dropdown + 搜索 + 多选)，保留隐藏select兼容旧逻辑 -->
@@ -406,9 +518,20 @@
                                                                        title="配置HR活跃度判断规则"></i>
                                                                 </label>
                                                                 <div id="deadStatusContainer"
-                                                                     class="border rounded p-1 bg-light me-auto fs-6 lh-sm"
+                                                                     class="border rounded p-1 bg-light me-auto fs-6 lh-sm mb-2"
                                                                      style="max-width: 400px;">
                                                                     <small class="text-muted fst-italic">可添加或删除HR状态</small>
+                                                                </div>
+                                                                <div class="input-group input-group-sm" style="max-width: 400px;">
+                                                                    <input type="text" 
+                                                                           class="form-control form-control-sm" 
+                                                                           id="hrStatusInput"
+                                                                           placeholder="输入HR状态，如：半年前活跃">
+                                                                    <button class="btn btn-sm btn-outline-primary" 
+                                                                            type="button" 
+                                                                            id="addHrStatusBtn">
+                                                                        <i class="bi bi-plus-lg me-1"></i>添加
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -448,20 +571,8 @@
                                                     过滤黑名单岗位
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将根据黑名单关键词过滤不想要的岗位（职位/公司/描述命中即过滤）"></i>
+                                                       title="开启后将根据公共配置中的黑名单关键词过滤不想要的岗位（职位/公司/描述命中即过滤）"></i>
                                                 </label>
-                                            </div>
-
-                                            <!-- Blacklist Keywords Config -->
-                                            <div class="mb-2">
-                                                <label for="blacklistKeywordsTextArea" class="form-label fw-semibold small">
-                                                    黑名单关键词配置
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="请输入黑名单关键词，使用英文逗号或换行分隔；示例：外包, 中介, 驻场"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="blacklistKeywordsTextArea" rows="2"
-                                                          placeholder="外包, 中介, 驻场"></textarea>
                                             </div>
                                         </div>
 
@@ -1091,11 +1202,40 @@
                                                     目标行业
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="选择目标公司所属行业，可多选"></i>
+                                                       title="先选择一级行业分类，再从右侧选择具体行业；可多选"></i>
                                                 </label>
-                                                <select class="form-select form-select-sm" id="zhilianIndustryField" multiple>
-                                                    <option value="">请选择行业</option>
-                                                </select>
+                                                <div class="dropdown w-100">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                                                            id="zhilianIndustryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        选择行业
+                                                    </button>
+                                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="zhilianIndustryDropdownBtn" style="min-width: 100%; width: 500px;" onclick="event.stopPropagation();">
+                                                        <!-- 搜索框 -->
+                                                        <input type="text" class="form-control form-control-sm mb-2" id="zhilianIndustrySearchField"
+                                                               placeholder="输入行业名称进行筛选...">
+                                                        <!-- 两栏布局 -->
+                                                        <div class="row g-2" style="min-height: 240px;">
+                                                            <!-- 左侧：一级行业列表 -->
+                                                            <div class="col-5">
+                                                                <div class="small text-muted mb-1 fw-semibold">一级分类</div>
+                                                                <div id="zhilianIndustryParentList" style="max-height: 220px; overflow-y: auto; border-right: 1px solid #dee2e6;">
+                                                                    <!-- 动态生成 -->
+                                                                </div>
+                                                            </div>
+                                                            <!-- 右侧：二级行业列表 -->
+                                                            <div class="col-7">
+                                                                <div class="small text-muted mb-1 fw-semibold">具体行业</div>
+                                                                <div id="zhilianIndustryChildList" style="max-height: 220px; overflow-y: auto;">
+                                                                    <div class="text-center text-muted small py-4">
+                                                                        <i class="bi bi-arrow-left me-1"></i>请先选择左侧分类
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" id="zhilianIndustrySelectionSummary">未选择</small>
+                                                <select class="form-select form-select-sm d-none" id="zhilianIndustryField" multiple></select>
                                             </div>
 
                                             <!-- City -->
@@ -1237,20 +1377,8 @@
                                                     过滤黑名单职位
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将根据黑名单关键词过滤不想要的职位"></i>
+                                                       title="开启后将根据公共配置中的黑名单关键词过滤不想要的职位"></i>
                                                 </label>
-                                            </div>
-
-                                            <!-- Blacklist Keywords Config -->
-                                            <div class="mb-2">
-                                                <label for="zhilianBlacklistKeywordsTextArea" class="form-label fw-semibold small">
-                                                    黑名单关键词配置
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="请输入黑名单关键词，使用英文逗号或换行分隔；示例：外包, 中介, 驻场"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="zhilianBlacklistKeywordsTextArea" rows="2"
-                                                          placeholder="外包, 中介, 驻场"></textarea>
                                             </div>
                                         </div>
 
@@ -1667,11 +1795,40 @@
                                                     目标行业
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="选择目标公司所属行业，可多选"></i>
+                                                       title="先选择一级行业分类，再从右侧选择具体行业；可多选"></i>
                                                 </label>
-                                                <select class="form-select form-select-sm" id="job51IndustryField" multiple>
-                                                    <option value="">请选择行业</option>
-                                                </select>
+                                                <div class="dropdown w-100">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                                                            id="job51IndustryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        选择行业
+                                                    </button>
+                                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="job51IndustryDropdownBtn" style="min-width: 100%; width: 500px;" onclick="event.stopPropagation();">
+                                                        <!-- 搜索框 -->
+                                                        <input type="text" class="form-control form-control-sm mb-2" id="job51IndustrySearchField"
+                                                               placeholder="输入行业名称进行筛选...">
+                                                        <!-- 两栏布局 -->
+                                                        <div class="row g-2" style="min-height: 240px;">
+                                                            <!-- 左侧：一级行业列表 -->
+                                                            <div class="col-5">
+                                                                <div class="small text-muted mb-1 fw-semibold">一级分类</div>
+                                                                <div id="job51IndustryParentList" style="max-height: 220px; overflow-y: auto; border-right: 1px solid #dee2e6;">
+                                                                    <!-- 动态生成 -->
+                                                                </div>
+                                                            </div>
+                                                            <!-- 右侧：二级行业列表 -->
+                                                            <div class="col-7">
+                                                                <div class="small text-muted mb-1 fw-semibold">具体行业</div>
+                                                                <div id="job51IndustryChildList" style="max-height: 220px; overflow-y: auto;">
+                                                                    <div class="text-center text-muted small py-4">
+                                                                        <i class="bi bi-arrow-left me-1"></i>请先选择左侧分类
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" id="job51IndustrySelectionSummary">未选择</small>
+                                                <select class="form-select form-select-sm d-none" id="job51IndustryField" multiple></select>
                                             </div>
 
                                             <!-- City -->
@@ -1807,31 +1964,14 @@
                                             <h6 class="card-title text-info mb-2">
                                                 <i class="bi bi-toggle-on me-2"></i>功能开关
                                             </h6>
-
-                                            
-                                            
-
-
                                             <div class="form-check mb-2">
                                                 <input class="form-check-input" type="checkbox" id="job51BlacklistFilterCheckBox">
                                                 <label class="form-check-label fw-semibold small" for="job51BlacklistFilterCheckBox">
                                                     过滤黑名单职位
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将根据黑名单关键词过滤不想要的职位"></i>
+                                                       title="开启后将根据公共配置中的黑名单关键词过滤不想要的职位"></i>
                                                 </label>
-                                            </div>
-
-                                            <!-- Blacklist Keywords Config -->
-                                            <div class="mb-2">
-                                                <label for="job51BlacklistKeywordsTextArea" class="form-label fw-semibold small">
-                                                    黑名单关键词配置
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="请输入黑名单关键词，使用英文逗号或换行分隔；示例：外包, 中介, 驻场"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="job51BlacklistKeywordsTextArea" rows="2"
-                                                          placeholder="外包, 中介, 驻场"></textarea>
                                             </div>
                                         </div>
 
@@ -2257,6 +2397,48 @@
                                                 <small class="text-muted d-block mt-1" id="liepinCitySelectionSummary">未选择</small>
                                                 <select class="form-select form-select-sm d-none" id="liepinCityCodeField" multiple></select>
                                             </div>
+
+                                            <!-- Industry -->
+                                            <div class="mb-2">
+                                                <label for="liepinIndustryField" class="form-label fw-semibold small">
+                                                    目标行业
+                                                    <i class="bi bi-question-circle text-muted ms-1"
+                                                       data-bs-toggle="tooltip"
+                                                       title="先选择一级行业分类，再从右侧选择具体行业；可多选"></i>
+                                                </label>
+                                                <div class="dropdown w-100">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                                                            id="liepinIndustryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        选择行业
+                                                    </button>
+                                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="liepinIndustryDropdownBtn" style="min-width: 100%; width: 500px;" onclick="event.stopPropagation();">
+                                                        <!-- 搜索框 -->
+                                                        <input type="text" class="form-control form-control-sm mb-2" id="liepinIndustrySearchField"
+                                                               placeholder="输入行业名称进行筛选...">
+                                                        <!-- 两栏布局 -->
+                                                        <div class="row g-2" style="min-height: 240px;">
+                                                            <!-- 左侧：一级行业列表 -->
+                                                            <div class="col-5">
+                                                                <div class="small text-muted mb-1 fw-semibold">一级分类</div>
+                                                                <div id="liepinIndustryParentList" style="max-height: 220px; overflow-y: auto; border-right: 1px solid #dee2e6;">
+                                                                    <!-- 动态生成 -->
+                                                                </div>
+                                                            </div>
+                                                            <!-- 右侧：二级行业列表 -->
+                                                            <div class="col-7">
+                                                                <div class="small text-muted mb-1 fw-semibold">具体行业</div>
+                                                                <div id="liepinIndustryChildList" style="max-height: 220px; overflow-y: auto;">
+                                                                    <div class="text-center text-muted small py-4">
+                                                                        <i class="bi bi-arrow-left me-1"></i>请先选择左侧分类
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" id="liepinIndustrySelectionSummary">未选择</small>
+                                                <select class="form-select form-select-sm d-none" id="liepinIndustryField" multiple></select>
+                                            </div>
                                         </div>
 
                                         <!-- Job Requirements Card -->
@@ -2385,20 +2567,8 @@
                                                     过滤黑名单职位
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
-                                                       title="开启后将根据黑名单关键词过滤不想要的职位"></i>
+                                                       title="开启后将根据公共配置中的黑名单关键词过滤不想要的职位"></i>
                                                 </label>
-                                            </div>
-
-                                            <!-- Blacklist Keywords Config -->
-                                            <div class="mb-2">
-                                                <label for="liepinBlacklistKeywordsTextArea" class="form-label fw-semibold small">
-                                                    黑名单关键词配置
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="请输入黑名单关键词，使用英文逗号或换行分隔；示例：外包, 中介, 驻场"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="liepinBlacklistKeywordsTextArea" rows="2"
-                                                          placeholder="外包, 中介, 驻场"></textarea>
                                             </div>
                                         </div>
 
@@ -2447,6 +2617,14 @@
                                                             id="liepinLoginBtn">
                                                         <i class="bi bi-box-arrow-in-right me-2"></i>1. 猎聘登录
                                                         <span class="badge bg-light text-dark ms-2" id="liepinLoginStatus">待执行</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-success btn-sm px-3 py-2"
+                                                            id="liepinLoginManualBtn" 
+                                                            title="手动标记为已登录"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="top"
+                                                            style="min-width: 45px; min-height: 38px; position: relative; z-index: 1;">
+                                                        <i class="bi bi-check-lg" style="pointer-events: none;"></i>
                                                     </button>
                                                 </div>
                                                 
@@ -2501,7 +2679,249 @@
                         <div class="card-body">
                             <!-- Vue应用挂载点 -->
                             <div id="liepinRecordsVueApp">
-                                <!-- Vue app for liepin records -->
+                                <!-- 加载提示 -->
+                                <div v-if="loading" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">加载岗位数据中...</p>
+                                </div>
+
+                                <!-- 错误提示 -->
+                                <div v-if="error && !loading" class="alert alert-danger" role="alert">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+                                </div>
+
+                                <!-- 数据内容 -->
+                                <div v-if="!loading && !error">
+                                    <!-- 统计信息 -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <div class="stats-card">
+                                                <h6>{{ totalElements }}</h6>
+                                                <small>总岗位数</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stats-card">
+                                                <h6>{{ records.length }}</h6>
+                                                <small>当前页</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stats-card">
+                                                <h6>{{ totalPages }}</h6>
+                                                <small>总页数</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stats-card">
+                                                <h6>{{ currentPage + 1 }}</h6>
+                                                <small>当前页</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 表格 -->
+                                    <div class="table-responsive job-records-table" style="max-height: 600px; overflow-y: auto;">
+                                        <table class="table table-hover align-middle table-striped">
+                                            <thead class="table-dark sticky-top">
+                                            <tr>
+                                                <th style="min-width: 140px;">岗位信息</th>
+                                                <th style="min-width: 120px;">公司信息</th>
+                                                <th style="min-width: 100px;">工作地点</th>
+                                                <th style="min-width: 100px;">薪资待遇</th>
+                                                <th style="min-width: 120px;">职位要求</th>
+                                                <th style="min-width: 100px;">技能标签</th>
+                                                <th style="min-width: 120px;">HR信息</th>
+                                                <th style="min-width: 100px;">公司福利</th>
+                                                <th style="min-width: 100px;">投递状态</th>
+                                                <th style="min-width: 140px;">过滤原因</th>
+                                                <th style="min-width: 120px;">操作</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr v-if="records.length === 0">
+                                                <td colspan="11" class="empty-state">
+                                                    <i class="bi bi-inbox"></i>
+                                                    <h5>暂无数据</h5>
+                                                    <p>请先执行岗位采集任务</p>
+                                                </td>
+                                            </tr>
+                                            <tr v-for="job in records" :key="job.id" class="job-row">
+                                                <!-- 岗位信息 -->
+                                                <td>
+                                                    <div class="job-title">{{ job.jobTitle }}</div>
+                                                    <div class="job-labels">
+                                                        <span v-for="label in parseArray(job.jobLabels)" :key="label" 
+                                                              class="badge bg-light text-dark">{{ label }}</span>
+                                                    </div>
+                                                    <div class="job-platform">
+                                                        <span class="badge bg-info">{{ job.platform }}</span>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 公司信息 -->
+                                                <td>
+                                                    <div class="company-name">{{ job.companyName }}</div>
+                                                    <div class="company-info">
+                                                        <div><i class="bi bi-building me-1"></i>{{ job.companyIndustry }}</div>
+                                                        <div><i class="bi bi-people me-1"></i>{{ job.companyScale }}</div>
+                                                        <div><i class="bi bi-graph-up me-1"></i>{{ job.companyStage }}</div>
+                                                    </div>
+                                                    <div class="company-logo" v-if="job.companyLogo">
+                                                        <img :src="job.companyLogo" class="company-logo-img" :alt="job.companyName">
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 工作地点 -->
+                                                <td>
+                                                    <div class="location-city">{{ job.workCity }}</div>
+                                                    <div class="location-details">
+                                                        <div><i class="bi bi-geo-alt me-1"></i>{{ job.workArea }}</div>
+                                                        <div v-if="job.businessDistrict"><i class="bi bi-building me-1"></i>{{ job.businessDistrict }}</div>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 薪资待遇 -->
+                                                <td>
+                                                    <div class="salary-desc">{{ job.salaryDesc }}</div>
+                                                    <div class="job-requirements">
+                                                        <div><i class="bi bi-clock me-1"></i>{{ job.jobExperience }}</div>
+                                                        <div><i class="bi bi-mortarboard me-1"></i>{{ job.jobDegree }}</div>
+                                                    </div>
+                                                    <div class="job-type" v-if="job.jobType !== undefined">
+                                                        <span class="badge bg-secondary">{{ getJobTypeText(job.jobType) }}</span>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 职位要求 -->
+                                                <td>
+                                                    <div class="job-description" v-if="job.jobDescription">
+                                                        {{ truncateText(job.jobDescription, 80) }}
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 技能标签 -->
+                                                <td>
+                                                    <div class="skills-container">
+                                                        <span v-for="skill in parseArray(job.skills).slice(0, 4)" :key="skill" 
+                                                              class="badge bg-secondary">{{ skill }}</span>
+                                                        <span v-if="parseArray(job.skills).length > 4" class="badge bg-light text-dark">
+                                                            +{{ parseArray(job.skills).length - 4 }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="skill-count" v-if="parseArray(job.skills).length > 0">
+                                                        <small class="text-muted">共{{ parseArray(job.skills).length }}项技能</small>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- HR信息 -->
+                                                <td>
+                                                    <div class="hr-info">
+                                                        <img v-if="job.hrAvatar" :src="job.hrAvatar" 
+                                                             class="hr-avatar" :alt="job.hrName">
+                                                        <div class="hr-name">{{ job.hrName }}</div>
+                                                    </div>
+                                                    <div class="hr-details">
+                                                        <div><i class="bi bi-person-badge me-1"></i>{{ job.hrTitle }}</div>
+                                                        <div class="hr-status">
+                                                            <span :class="job.hrOnline ? 'text-success' : 'text-muted'">
+                                                                <i class="bi bi-circle-fill"></i>
+                                                                {{ job.hrOnline ? '在线' : '离线' }}
+                                                            </span>
+                                                        </div>
+                                                        <div v-if="job.hrCertLevel" class="hr-cert">
+                                                            <span class="badge bg-warning">认证{{ job.hrCertLevel }}级</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 公司福利 -->
+                                                <td>
+                                                    <div class="welfare-container" v-if="parseArray(job.welfareList).length > 0">
+                                                        <span v-for="welfare in parseArray(job.welfareList).slice(0, 3)" :key="welfare" 
+                                                              class="badge bg-success">{{ welfare }}</span>
+                                                        <span v-if="parseArray(job.welfareList).length > 3" class="badge bg-light text-dark">
+                                                            +{{ parseArray(job.welfareList).length - 3 }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="welfare-count" v-if="parseArray(job.welfareList).length > 0">
+                                                        <small class="text-muted">共{{ parseArray(job.welfareList).length }}项福利</small>
+                                                    </div>
+                                                    <div class="no-welfare" v-else>
+                                                        <small class="text-muted">暂无福利信息</small>
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 投递状态 -->
+                                                <td>
+                                                    <div :class="getStatusInfo(job.status).class">
+                                                        {{ getStatusInfo(job.status).text }}
+                                                    </div>
+                                                    <div class="status-time">
+                                                        <div><i class="bi bi-calendar me-1"></i>{{ formatDateTime(job.createdAt) }}</div>
+                                                        <div v-if="job.updatedAt"><i class="bi bi-clock me-1"></i>{{ formatDateTime(job.updatedAt) }}</div>
+                                                    </div>
+                                                    <div class="job-flags" v-if="job.isFavorite || job.isOptimal">
+                                                        <span v-if="job.isFavorite" class="badge bg-danger me-1">收藏</span>
+                                                        <span v-if="job.isOptimal" class="badge bg-warning">优选</span>
+                                                    </div>
+                                                </td>
+
+                                                <!-- 过滤原因 -->
+                                                <td>
+                                                    <div v-if="job.filterReason" :title="job.filterReason">
+                                                        {{ truncateText(job.filterReason, 60) }}
+                                                    </div>
+                                                    <div v-else class="text-muted">
+                                                        -
+                                                    </div>
+                                                </td>
+                                                
+                                                <!-- 操作 -->
+                                                <td>
+                                                    <div class="action-buttons">
+                                                        <button class="btn btn-outline-primary btn-sm" 
+                                                                @click="viewJobDetail(job)" title="查看详情">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-info btn-sm" 
+                                                                @click="copyJobUrl(job)" title="复制链接">
+                                                            <i class="bi bi-link-45deg"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-success btn-sm" 
+                                                                @click="toggleFavorite(job)" 
+                                                                :class="job.isFavorite ? 'active' : ''" title="收藏">
+                                                            <i class="bi bi-heart"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning btn-sm" 
+                                                                @click="viewCompanyInfo(job)" title="公司信息">
+                                                            <i class="bi bi-building"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- 分页 -->
+                                    <nav v-if="totalPages > 1">
+                                        <ul class="pagination justify-content-center">
+                                            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+                                                <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)">上一页</a>
+                                            </li>
+                                            <li v-for="page in visiblePages" :key="page" 
+                                                class="page-item" :class="{ active: page === currentPage }">
+                                                <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page + 1 }}</a>
+                                            </li>
+                                            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+                                                <a class="page-link" href="#" @click.prevent="goToPage(currentPage + 1)">下一页</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2518,6 +2938,7 @@
 <script src="js/common.js"></script>
 
 <!-- 视图模块 -->
+<script src="js/views/common-config.js"></script>
 <script src="js/views/boss-config-form.js"></script>
 <script src="js/views/boss-config-readonly.js"></script>
 <script src="js/views/boss-records-vue.js"></script>
@@ -2540,7 +2961,7 @@
     <div class="ai-prompt-content">
         <h5>
             <i class="bi bi-pencil-square me-2"></i>
-            AI所信息补全
+            求职信息补全（AI使用）
         </h5>
         
         <!-- 页签导航 -->
@@ -2551,12 +2972,12 @@
                     <i class="bi bi-person-circle me-1"></i>候选人信息
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <!--<li class="nav-item" role="presentation">
                 <button class="nav-link" id="greeting-tab" data-bs-toggle="tab" data-bs-target="#greeting-pane"
                         type="button" role="tab" aria-controls="greeting-pane" aria-selected="false">
                     <i class="bi bi-chat-dots me-1"></i>打招呼内容
                 </button>
-            </li>
+            </li>-->
         </ul>
         
         <!-- 页签内容 -->
@@ -2687,9 +3108,6 @@
         <div class="d-grid gap-2 mt-3">
             <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">
                 <i class="bi bi-save me-1"></i>保存候选人信息
-            </button>
-            <button id="generateGreetingBtn" class="btn btn-outline-success btn-sm w-100">
-                <i class="bi bi-robot me-1"></i>AI生成打招呼
             </button>
         </div>
     </div>

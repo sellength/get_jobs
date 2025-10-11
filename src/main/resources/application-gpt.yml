@@ -14,7 +14,7 @@
           # 默认最大token数
           max-tokens: 2000
     deepseek:
-      api-key: ${DEEPSEEK_API_KEY:xxx}
+      api-key: ${DEEPSEEK_API_KEY:sk-0720b1480e3247e8bfcab361a679e7cb}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
         # 启用OpenAI聊天模型

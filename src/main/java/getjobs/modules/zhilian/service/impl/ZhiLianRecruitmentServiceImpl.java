@@ -1,23 +1,25 @@
 package getjobs.modules.zhilian.service.impl;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.zhilian.service.ZhiLianElementLocators;
 import getjobs.service.RecruitmentService;
-import getjobs.utils.PlaywrightUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,11 +30,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
 
     private static final String HOME_URL = RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN.getHomeUrl();
     private static final String SEARCH_JOB_URL = "https://www.zhaopin.com/sou?";
     // https://www.zhaopin.com/sou?el=4&we=0510&et=2&sl=15001,25000&jl=763&kw=java
+    
+    private final PlaywrightService playwrightService;
+    private Page page;
+
+    @PostConstruct
+    public void init() {
+        this.page = playwrightService.getPage(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
+    }
+
     @Override
     public RecruitmentPlatformEnum getPlatform() {
         return RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN;
@@ -44,7 +56,6 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
         
         try {
             // 使用Playwright打开网站
-            Page page = PlaywrightUtil.getPageObject();
             page.navigate(HOME_URL);
             
             // 检查是否需要登录
@@ -98,17 +109,8 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
         log.info("开始执行智联招聘岗位投递操作，待投递岗位数量: {}", jobDTOS.size());
         AtomicInteger successCount = new AtomicInteger(0);
 
-        // 为投递任务创建一个独立的、隔离的浏览器上下文，防止与其他操作冲突
-        Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
-                .setUserAgent(PlaywrightUtil.getRandomUserAgent())
-                .setJavaScriptEnabled(true)
-                .setBypassCSP(true)
-                .setLocale("zh-CN")
-                .setTimezoneId("Asia/Shanghai");
-
-        try (BrowserContext deliveryContext = PlaywrightUtil.getBrowser().newContext(contextOptions);
-             Page jobPage = deliveryContext.newPage()) {
-
+        // 在新标签页中打开岗位详情
+        try (Page jobPage = page.context().newPage()) {
             jobPage.setDefaultTimeout(30000); // 为新页面设置默认超时
 
             for (JobDTO jobDTO : jobDTOS) {
@@ -131,13 +133,18 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
 
                     if (popup != null) {
                         popup.waitForLoadState();       // 可选：等加载稳定
-                        // TODO: 可根据 URL/标题做一次校验，确认是“投递成功”页
+                        // TODO: 可根据 URL/标题做一次校验，确认是"投递成功"页
                         popup.close();                  // 关闭新页签
                     }
 
 
                     // 添加3-5秒随机延迟，避免投递过快
-                    PlaywrightUtil.randomSleep(3, 5);
+                    try {
+                        int randomSeconds = new Random().nextInt(3) + 3; // 3-5秒
+                        TimeUnit.SECONDS.sleep(randomSeconds);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
 
                 } catch (Exception e) {
                     log.error("投递岗位 {} 时发生异常: {}", jobDTO.getJobName(), e.getMessage());
@@ -180,7 +187,6 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
         log.info("开始采集，城市: {}，关键词: {}，URL: {}", cityCode, keyword, searchUrl);
         
         List<JobDTO> jobDTOS = new ArrayList<>();
-        Page page = PlaywrightUtil.getPageObject();
         
         try {
             page.navigate(searchUrl);
@@ -275,12 +281,10 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
      * 执行登录操作
      */
     private boolean performLogin() {
-        Page page = PlaywrightUtil.getPageObject();
-        
         try {
             // 直接首页登录即可，不需要单独使用登录页
             page.navigate(HOME_URL);
-            PlaywrightUtil.sleep(3);
+            TimeUnit.SECONDS.sleep(3);
             
             log.info("等待用户手动登录...");
             log.info("请在浏览器中完成登录操作");
@@ -299,7 +303,7 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
                     log.debug("登录状态检查异常: {}", e.getMessage());
                 }
                 
-                PlaywrightUtil.sleep(2);
+                TimeUnit.SECONDS.sleep(2);
             }
             
             return true;
@@ -321,10 +325,13 @@ public class ZhiLianRecruitmentServiceImpl implements RecruitmentService {
                     scanner.nextLine();
                     return true;
                 }
+                TimeUnit.SECONDS.sleep(1);
             } catch (IOException e) {
                 // 忽略异常
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
-            PlaywrightUtil.sleep(1);
         }
         return false;
     }

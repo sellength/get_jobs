@@ -3,8 +3,8 @@ package getjobs.modules.boss.service;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.ai.common.enums.AiPlatform;
 import getjobs.modules.ai.job.service.JobMatchAiService;
-import getjobs.modules.ai.service.AiPromptService;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.repository.UserProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
@@ -26,11 +26,11 @@ public class JobFilterService {
 
     private final JobMatchAiService jobMatchAiService;
 
-    private final AiPromptService aiPromptService;
+    private final UserProfileRepository userProfileRepository;
 
-    public JobFilterService(JobMatchAiService jobMatchAiService, AiPromptService aiPromptService) {
+    public JobFilterService(JobMatchAiService jobMatchAiService, UserProfileRepository userProfileRepository) {
         this.jobMatchAiService = jobMatchAiService;
-        this.aiPromptService = aiPromptService;
+        this.userProfileRepository = userProfileRepository;
     }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
@@ -86,7 +86,10 @@ public class JobFilterService {
 
         // AI岗位匹配度过滤
         if (config.getEnableAIJobMatchDetection()) {
-            String myJd = aiPromptService.getPromptTemplate("job.match-position").get().getPlaceholders().get("my_jd");
+            String myJd = userProfileRepository.findAll().stream()
+                    .findFirst()
+                    .map(profile -> profile.getRole())
+                    .orElse(null);
             String jobDescription  = job.getJobDescription();
             if(ObjectUtils.isEmpty(jobDescription)){
                 return "AI岗位匹配失败，职位要求为空";
@@ -96,7 +99,7 @@ public class JobFilterService {
                     return "AI岗位匹配度低于阈值";
                 }
             }else {
-                return "AI岗位匹配失败，请补充期望岗位职责";
+                return "AI岗位匹配失败，请补充用户职位角色信息";
             }
         }
 

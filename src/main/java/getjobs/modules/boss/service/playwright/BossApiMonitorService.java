@@ -3,11 +3,12 @@ package getjobs.modules.boss.service.playwright;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.openjson.JSONObject;
 import com.microsoft.playwright.*;
+import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.BossApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import getjobs.utils.BossJobDataConverter;
-import getjobs.utils.PlaywrightUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class BossApiMonitorService {
 
     private final JobRepository jobRepository;
     private final BossJobDataConverter dataConverter;
+    private final PlaywrightService playwrightService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 全局接口调用频率限制：记录最后一次调用时间
@@ -61,8 +63,8 @@ public class BossApiMonitorService {
      */
     public void setupJobApiMonitor() {
         try {
-            BrowserContext ctx = PlaywrightUtil.getContext();
-            Page page = PlaywrightUtil.getPageObject();
+            BrowserContext ctx = playwrightService.getContext(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+            Page page = playwrightService.getPage(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 监听岗位搜索接口
             // setupJobSearchMonitor(ctx);
@@ -317,7 +319,7 @@ public class BossApiMonitorService {
      */
     public boolean isMonitoringActive() {
         try {
-            BrowserContext ctx = PlaywrightUtil.getContext();
+            BrowserContext ctx = playwrightService.getContext(RecruitmentPlatformEnum.BOSS_ZHIPIN);
             return ctx != null;
         } catch (Exception e) {
             log.warn("检查监控服务状态失败: {}", e.getMessage());
@@ -611,7 +613,7 @@ public class BossApiMonitorService {
             log.info("开始访问zhipin.com刷新token");
 
             // 获取Playwright上下文
-            BrowserContext context = PlaywrightUtil.getContext();
+            BrowserContext context = playwrightService.getContext(RecruitmentPlatformEnum.BOSS_ZHIPIN);
             if (context == null) {
                 log.error("无法获取Playwright上下文，token刷新失败");
                 return false;

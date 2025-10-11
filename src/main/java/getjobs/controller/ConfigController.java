@@ -85,6 +85,27 @@ public class ConfigController {
         return ResponseEntity.ok(entity);
     }
 
+    @PostMapping("/liepin")
+    public ResponseEntity<Map<String, Object>> saveLiepinConfig(@RequestBody ConfigDTO dto) {
+        ConfigEntity entity = toEntity(dto);
+        // 自动绑定平台类型为猎聘
+        entity.setPlatformType(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
+        entity = configService.save(entity);
+        ConfigDTO.reload();
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("id", entity.getId());
+        resp.put("platformType", entity.getPlatformType());
+        return ResponseEntity.ok(resp);
+    }
+
+    @GetMapping("/liepin")
+    public ResponseEntity<ConfigEntity> loadLiepinConfig() {
+        ConfigEntity entity = configService.loadByPlatformType(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
+        return ResponseEntity.ok(entity);
+    }
+
     private ConfigEntity toEntity(ConfigDTO dto) {
         ConfigEntity e = new ConfigEntity();
         e.setSayHi(dto.getSayHi());

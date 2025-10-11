@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Service
 public class BossTaskService {
 
-    private final PlaywrightManager playwrightManager;
 
     private final RecruitmentServiceFactory serviceFactory;
 
@@ -48,9 +47,8 @@ public class BossTaskService {
     // 数据目录路径
     private String dataPath;
 
-    public BossTaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
+    public BossTaskService(RecruitmentServiceFactory serviceFactory,
             JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService, ApplicationEventPublisher eventPublisher) {
-        this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
@@ -76,9 +74,6 @@ public class BossTaskService {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行登录操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取Boss直聘服务
             RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
@@ -118,9 +113,6 @@ public class BossTaskService {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行岗位采集操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取Boss直聘服务
             RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);

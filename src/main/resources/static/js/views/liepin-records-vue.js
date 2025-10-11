@@ -55,7 +55,7 @@
                         
                         try {
                             const params = new URLSearchParams();
-                            params.set('platform', 'liepin');
+                            params.set('platform', 'LIEPIN');  // 使用与后端保存一致的平台名称
                             if (this.searchKeyword.trim()) {
                                 params.set('keyword', this.searchKeyword.trim());
                             }
@@ -77,6 +77,12 @@
                             this.first = data.first || false;
                             this.last = data.last || false;
                             this.empty = data.empty || true;
+                            
+                            console.log('猎聘岗位数据加载完成:', {
+                                total: this.totalElements,
+                                currentPage: this.currentPage,
+                                records: this.records.length
+                            });
                             
                         } catch (error) {
                             console.error('加载岗位数据失败:', error);

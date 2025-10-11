@@ -1302,3 +1302,127 @@ body {
     border-color: #198754;
     color: #fff;
 }
+
+/* 标签输入组件样式 */
+.tags-input-container {
+    min-height: 120px;
+    padding: 8px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    cursor: text;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tags-input-container:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.tags-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 32px;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+    transition: all 0.2s ease;
+    animation: tagFadeIn 0.3s ease;
+}
+
+.tag-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.tag-text {
+    margin-right: 6px;
+    user-select: none;
+}
+
+.tag-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.tag-remove:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+    transform: scale(1.1);
+}
+
+.tags-input {
+    flex: 1;
+    min-width: 200px;
+    border: none;
+    outline: none;
+    padding: 8px 4px;
+    font-size: 14px;
+    background: transparent;
+}
+
+.tags-input::placeholder {
+    color: #a0aec0;
+}
+
+@keyframes tagFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .tags-input-container {
+        min-height: 100px;
+        padding: 6px;
+    }
+    
+    .tag-item {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+    
+    .tags-input {
+        font-size: 13px;
+        padding: 6px 4px;
+    }
+}

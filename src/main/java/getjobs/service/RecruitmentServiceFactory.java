@@ -3,6 +3,7 @@ package getjobs.service;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.service.impl.BossRecruitmentServiceImpl;
 import getjobs.modules.job51.service.impl.Job51RecruitmentServiceImpl;
+import getjobs.modules.liepin.service.impl.LiepinRecruitmentServiceImpl;
 import getjobs.modules.zhilian.service.impl.ZhiLianRecruitmentServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,13 +30,15 @@ public class RecruitmentServiceFactory {
     private final BossRecruitmentServiceImpl bossRecruitmentService;
     private final Job51RecruitmentServiceImpl job51RecruitmentService;
     private final ZhiLianRecruitmentServiceImpl zhiLianRecruitmentService;
+    private final LiepinRecruitmentServiceImpl liepinRecruitmentService;
 
     public RecruitmentServiceFactory(BossRecruitmentServiceImpl bossRecruitmentService,
-            Job51RecruitmentServiceImpl job51RecruitmentService,
-            ZhiLianRecruitmentServiceImpl zhiLianRecruitmentService) {
+                                     Job51RecruitmentServiceImpl job51RecruitmentService,
+                                     ZhiLianRecruitmentServiceImpl zhiLianRecruitmentService, LiepinRecruitmentServiceImpl liepinRecruitmentService) {
         this.bossRecruitmentService = bossRecruitmentService;
         this.job51RecruitmentService = job51RecruitmentService;
         this.zhiLianRecruitmentService = zhiLianRecruitmentService;
+        this.liepinRecruitmentService = liepinRecruitmentService;
     }
 
     @PostConstruct
@@ -44,6 +47,7 @@ public class RecruitmentServiceFactory {
         serviceMap.put(RecruitmentPlatformEnum.BOSS_ZHIPIN, bossRecruitmentService);
         serviceMap.put(RecruitmentPlatformEnum.JOB_51, job51RecruitmentService);
         serviceMap.put(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, zhiLianRecruitmentService);
+        serviceMap.put(RecruitmentPlatformEnum.LIEPIN, liepinRecruitmentService);
 
         log.info("招聘服务工厂初始化完成，支持平台: {}", serviceMap.keySet());
     }

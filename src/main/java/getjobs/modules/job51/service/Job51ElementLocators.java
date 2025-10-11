@@ -16,21 +16,20 @@ import java.util.ArrayList;
 public class Job51ElementLocators {
     /**
      * 判断用户是否已登录
-     * 通过检查class="user"块中是否存在"退出帐号"按钮来判断登录状态
+     * 通过检查header-right区块中是否存在"登录/注册"按钮来判断登录状态
+     * 未登录状态：存在"登录/注册"按钮
+     * 已登录状态：不存在"登录/注册"按钮
      *
      * @param page Playwright页面对象
      * @return true表示已登录，false表示未登录
      */
     public static boolean isUserLoggedIn(Page page) {
         try {
-            // 查找class="user"的div元素
-            var userDiv = page.locator("div.user");
+            // 查找包含"登录/注册"文本的span元素
+            var loginButton = page.locator("span.login.loginBtnClick:has-text('登录/注册')");
 
-            // 检查是否存在"退出帐号"链接
-            var logoutLink = userDiv.locator("a:has-text('退出帐号')");
-
-            // 如果找到退出登录按钮，说明用户已登录
-            return logoutLink.count() > 0;
+            // 如果不存在"登录/注册"按钮，说明用户已登录
+            return loginButton.count() == 0;
         } catch (Exception e) {
             // 如果出现异常，默认认为未登录
             return false;

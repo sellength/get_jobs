@@ -16,7 +16,8 @@ import jakarta.annotation.PreDestroy;
  *         "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
  */
 @Slf4j
-@Component
+//@Component
+@Deprecated
 public class PlaywrightManager {
 
     private volatile boolean initialized = false;

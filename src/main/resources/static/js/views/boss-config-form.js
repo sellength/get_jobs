@@ -13,6 +13,8 @@
                 filterTaskId: null,
                 applyTaskId: null
             };
+            this.statusPollingInterval = null; // 状态轮询定时器
+            this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
             this.init();
         }
 
@@ -130,22 +132,7 @@
         }
 
         bindCityCodeConfig() {
-            const container = document.getElementById('customCityCodeContainer');
-            if (!container) return;
-            const sampleCityCodes = [
-                { city: '北京', code: '101010100' },
-                { city: '上海', code: '101020100' },
-                { city: '深圳', code: '101280600' },
-                { city: '广州', code: '101280100' }
-            ];
-            sampleCityCodes.forEach(item => {
-                this.addCityCodeItem(container, item.city, item.code);
-            });
-            const addBtn = document.createElement('button');
-            addBtn.className = 'btn btn-sm btn-outline-primary mt-2';
-            addBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>添加城市代码';
-            addBtn.onclick = () => this.showAddCityCodeModal();
-            container.appendChild(addBtn);
+            // 城市配置相关功能已移除，通过字典接口动态加载
         }
 
         addCityCodeItem(container, city, code) {
@@ -170,17 +157,7 @@
         }
 
         bindHRStatusConfig() {
-            const container = document.getElementById('deadStatusContainer');
-            if (!container) return;
-            const sampleStatuses = [ '长期未活跃', '已离职', '账号异常', '不回复消息' ];
-            sampleStatuses.forEach(status => {
-                this.addHRStatusItem(container, status);
-            });
-            const addBtn = document.createElement('button');
-            addBtn.className = 'btn btn-sm btn-outline-warning mt-2';
-            addBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>添加HR状态';
-            addBtn.onclick = () => this.showAddHRStatusModal();
-            container.appendChild(addBtn);
+            // HR状态配置相关功能已移除，通过字典接口动态加载
         }
 
         addHRStatusItem(container, status) {
@@ -213,10 +190,16 @@
         }
 
         saveConfig() {
+            const getMultiSelectValues = (selectId) => {
+                const el = document.getElementById(selectId);
+                if (!el) return '';
+                return Array.from(el.selectedOptions).map(o => o.value).filter(Boolean).join(',');
+            };
+
             this.config = {
                 keywords: document.getElementById('keywordsField').value,
-                industry: document.getElementById('industryField').value,
-                cityCode: document.getElementById('cityCodeField').value,
+                industry: getMultiSelectValues('industryField'),
+                cityCode: getMultiSelectValues('cityCodeField'),
                 experience: document.getElementById('experienceComboBox').value,
                 jobType: document.getElementById('jobTypeComboBox').value,
                 salary: document.getElementById('salaryComboBox').value,
@@ -422,6 +405,9 @@
             // 特殊处理城市选择器
             this.populateCitySelector();
             
+            // 特殊处理行业选择器
+            this.populateIndustrySelector();
+            
             // 特殊处理期望薪资字段
             this.populateExpectedSalary();
             
@@ -536,6 +522,65 @@
                 cityDropdownBtn.textContent = `已选 ${values.length} 项`;
                 citySummary.textContent = `已选 ${values.length} 项`;
             }
+        }
+
+        // 填充行业选择器
+        populateIndustrySelector() {
+            const industry = this.config.industry;
+            if (!industry) return;
+            
+            // 处理数组格式（从后端返回）或字符串格式（从本地缓存）
+            let industryStr = '';
+            if (Array.isArray(industry)) {
+                industryStr = industry.join(',');
+            } else {
+                industryStr = industry;
+            }
+            
+            console.log('BossConfigForm: 填充行业选择器，原始行业数据:', industry, '处理后:', industryStr);
+            
+            const industrySelect = document.getElementById('industryField');
+            const industryDropdownBtn = document.getElementById('industryDropdownBtn');
+            const industrySummary = document.getElementById('industrySelectionSummary');
+            
+            if (!industrySelect) {
+                console.warn('BossConfigForm: 未找到行业选择器元素');
+                return;
+            }
+
+            // 解析行业代码（支持逗号分隔的多个行业）
+            const codes = industryStr.split(',').map(s => s.trim()).filter(Boolean);
+            console.log('BossConfigForm: 解析的行业代码:', codes);
+
+            // 设置隐藏select的选中状态
+            Array.from(industrySelect.options).forEach(opt => {
+                opt.selected = codes.includes(opt.value);
+            });
+
+            // 更新下拉框显示状态
+            this.updateIndustryDropdownDisplay();
+
+            // 更新行业摘要
+            if (typeof this.updateIndustrySummary === 'function') {
+                this.updateIndustrySummary();
+            }
+        }
+
+        // 更新行业下拉框显示状态
+        updateIndustryDropdownDisplay() {
+            const industrySelect = document.getElementById('industryField');
+            const industryListContainer = document.getElementById('industryDropdownList');
+            
+            if (!industrySelect || !industryListContainer) return;
+
+            // 更新checkbox状态
+            const checkboxes = industryListContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const option = Array.from(industrySelect.options).find(o => o.value === checkbox.value);
+                if (option) {
+                    checkbox.checked = option.selected;
+                }
+            });
         }
 
         // 填充期望薪资字段
@@ -857,11 +902,9 @@
 
                 if (result.success) {
                     this.taskStates.loginTaskId = result.taskId;
-                    this.updateButtonState('loginBtn', 'loginStatus', '登录成功', false, 'success');
-                    this.enableNextStep('collectBtn', 'collectStatus', '可开始采集');
-                    this.enableNextStep('filterBtn', 'filterStatus', '可开始过滤');
-                    this.enableNextStep('deliverBtn', 'deliverStatus', '可开始投递');
-                    CommonUtils.showToast('Boss登录成功！');
+                    CommonUtils.showToast('Boss登录任务已提交');
+                    // 启动状态轮询
+                    this.startStatusPolling();
                 } else {
                     this.updateButtonState('loginBtn', 'loginStatus', '登录失败', false, 'danger');
                     CommonUtils.showToast(result.message || '登录失败', 'danger');
@@ -884,7 +927,7 @@
 
         // 处理采集
         async handleCollect() {
-            if (!this.taskStates.loginTaskId) {
+            if (!this.isLoggedIn()) {
                 CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
                 return;
             }
@@ -903,8 +946,9 @@
 
                 if (result.success) {
                     this.taskStates.collectTaskId = result.taskId;
-                    this.updateButtonState('collectBtn', 'collectStatus', `采集完成(${result.jobCount}个职位)`, false, 'success');
-                    CommonUtils.showToast(`采集完成，共找到 ${result.jobCount} 个职位！`);
+                    CommonUtils.showToast('Boss采集任务已提交');
+                    // 启动状态轮询（如果未启动）
+                    this.startStatusPolling();
                 } else {
                     this.updateButtonState('collectBtn', 'collectStatus', '采集失败', false, 'danger');
                     CommonUtils.showToast(result.message || '采集失败', 'danger');
@@ -917,7 +961,7 @@
 
         // 处理过滤
         async handleFilter() {
-            if (!this.taskStates.loginTaskId) {
+            if (!this.isLoggedIn()) {
                 CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
                 return;
             }
@@ -941,8 +985,9 @@
 
                 if (result.success) {
                     this.taskStates.filterTaskId = result.taskId;
-                    this.updateButtonState('filterBtn', 'filterStatus', `过滤完成(${result.originalCount}→${result.filteredCount})`, false, 'success');
-                    CommonUtils.showToast(`过滤完成，从 ${result.originalCount} 个职位中筛选出 ${result.filteredCount} 个！`);
+                    CommonUtils.showToast('Boss过滤任务已提交');
+                    // 启动状态轮询（如果未启动）
+                    this.startStatusPolling();
                 } else {
                     this.updateButtonState('filterBtn', 'filterStatus', '过滤失败', false, 'danger');
                     CommonUtils.showToast(result.message || '过滤失败', 'danger');
@@ -955,7 +1000,7 @@
 
         // 处理投递
         async handleApply() {
-            if (!this.taskStates.loginTaskId) {
+            if (!this.isLoggedIn()) {
                 CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
                 return;
             }
@@ -990,9 +1035,10 @@
 
                 if (result.success) {
                     this.taskStates.applyTaskId = result.taskId;
-                    const deliveryType = result.actualDelivery ? '实际投递' : '模拟投递';
-                    this.updateButtonState('deliverBtn', 'deliverStatus', `${deliveryType}完成(${result.appliedCount}/${result.totalCount})`, false, 'success');
-                    CommonUtils.showToast(`${deliveryType}完成！处理了 ${result.appliedCount} 个职位`);
+                    const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
+                    CommonUtils.showToast(`Boss${deliveryType}任务已提交`);
+                    // 启动状态轮询（如果未启动）
+                    this.startStatusPolling();
                 } else {
                     this.updateButtonState('deliverBtn', 'deliverStatus', '投递失败', false, 'danger');
                     CommonUtils.showToast(result.message || '投递失败', 'danger');
@@ -1013,7 +1059,7 @@
 
             return {
                 keywords: document.getElementById('keywordsField')?.value || '',
-                industry: document.getElementById('industryField')?.value || '',
+                industry: getMultiSelectValues('industryField'),
                 cityCode: getMultiSelectValues('cityCodeField'),
                 experience: document.getElementById('experienceComboBox')?.value || '',
                 jobType: document.getElementById('jobTypeComboBox')?.value || '',
@@ -1032,7 +1078,6 @@
                 sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
                 recommendJobs: document.getElementById('recommendJobsCheckBox')?.checked || false,
                 enableBlacklistFilter: document.getElementById('enableBlacklistFilterCheckBox')?.checked || false,
-                blacklistKeywords: document.getElementById('blacklistKeywordsTextArea')?.value || '',
                 enableAIJobMatchDetection: document.getElementById('enableAIJobMatchDetectionCheckBox')?.checked || false,
                 enableAIGreeting: document.getElementById('enableAIGreetingCheckBox')?.checked || false,
                 checkStateOwned: document.getElementById('checkStateOwnedCheckBox')?.checked || false,
@@ -1090,6 +1135,8 @@
                         applyTaskId: null
                     };
 
+                    this.stopStatusPolling();
+
                     this.updateButtonState('loginBtn', 'loginStatus', '待执行', false, 'default');
                     this.updateButtonState('collectBtn', 'collectStatus', '等待登录', true, 'default');
                     this.updateButtonState('filterBtn', 'filterStatus', '等待登录', true, 'default');
@@ -1102,6 +1149,121 @@
                     CommonUtils.showToast('任务流程已重置', 'info');
                 }
             );
+        }
+
+        // 启动状态轮询
+        startStatusPolling() {
+            if (this.statusPollingInterval) {
+                return; // 已经在轮询中
+            }
+            
+            console.log('Boss: 启动任务状态轮询');
+            this.statusPollingInterval = setInterval(() => {
+                this.fetchAllTaskStatus();
+            }, 2000); // 每2秒轮询一次
+            
+            // 立即执行一次
+            this.fetchAllTaskStatus();
+        }
+
+        // 停止状态轮询
+        stopStatusPolling() {
+            if (this.statusPollingInterval) {
+                console.log('Boss: 停止任务状态轮询');
+                clearInterval(this.statusPollingInterval);
+                this.statusPollingInterval = null;
+            }
+        }
+
+        // 检查是否已登录（基于最新的任务状态缓存）
+        isLoggedIn() {
+            if (!this.latestTaskStatus) return false;
+            const loginStatus = this.latestTaskStatus.login;
+            return loginStatus && loginStatus.state === 'SUCCESS';
+        }
+
+        // 查询所有任务状态
+        async fetchAllTaskStatus() {
+            try {
+                const response = await fetch('/api/tasks/status');
+                if (!response.ok) return;
+                
+                const result = await response.json();
+                if (!result || !result.data) return;
+                
+                // 更新Boss模块的任务状态
+                const bossStatus = result.data.boss || {};
+                
+                // 缓存最新的任务状态
+                this.latestTaskStatus = bossStatus;
+                
+                this.updateTaskStatusUI(bossStatus);
+                
+            } catch (error) {
+                console.warn('Boss: 查询任务状态失败:', error);
+            }
+        }
+
+        // 更新任务状态UI
+        updateTaskStatusUI(statusData) {
+            // 更新登录任务状态
+            if (statusData.login) {
+                this.updateTaskUI('login', statusData.login);
+            }
+            
+            // 更新采集任务状态
+            if (statusData.collect) {
+                this.updateTaskUI('collect', statusData.collect);
+            }
+            
+            // 更新过滤任务状态
+            if (statusData.filter) {
+                this.updateTaskUI('filter', statusData.filter);
+            }
+            
+            // 更新投递任务状态
+            if (statusData.deliver) {
+                this.updateTaskUI('deliver', statusData.deliver);
+            }
+        }
+
+        // 更新单个任务的UI
+        updateTaskUI(taskType, taskStatus) {
+            const buttonMap = {
+                'login': { btn: 'loginBtn', status: 'loginStatus' },
+                'collect': { btn: 'collectBtn', status: 'collectStatus' },
+                'filter': { btn: 'filterBtn', status: 'filterStatus' },
+                'deliver': { btn: 'deliverBtn', status: 'deliverStatus' }
+            };
+            
+            const uiElements = buttonMap[taskType];
+            if (!uiElements) return;
+            
+            const state = taskStatus.state; // PENDING, RUNNING, SUCCESS, FAILED
+            const message = taskStatus.message || '';
+            
+            switch (state) {
+                case 'RUNNING':
+                    this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true, 'warning');
+                    break;
+                case 'SUCCESS':
+                    this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false, 'success');
+                    // 启用下一步
+                    if (taskType === 'login') {
+                        this.enableNextStep('collectBtn', 'collectStatus', '可开始采集');
+                        this.enableNextStep('filterBtn', 'filterStatus', '可开始过滤');
+                        this.enableNextStep('deliverBtn', 'deliverStatus', '可开始投递');
+                    }
+                    // 如果所有任务都完成，停止轮询
+                    if (taskType === 'deliver') {
+                        this.stopStatusPolling();
+                    }
+                    break;
+                case 'FAILED':
+                    this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false, 'danger');
+                    this.stopStatusPolling();
+                    break;
+            }
         }
 
         // 加载Boss字典数据
@@ -1129,6 +1291,9 @@
 
                 // 渲染城市选择器
                 this.renderCitySelector(groupMap.get('cityList') || []);
+                
+                // 渲染行业选择器
+                this.renderIndustrySelector(groupMap.get('industryList') || []);
                 
                 // 渲染其他下拉框
                 this.fillSelect('experienceComboBox', groupMap.get('experienceList'));
@@ -1286,6 +1451,105 @@
                         String(it.code || '').toLowerCase().includes(kw)
                     );
                     renderCityOptions(filtered);
+                });
+            }
+        }
+
+        // 渲染行业选择器
+        renderIndustrySelector(industryItems) {
+            console.log('BossConfigForm: 渲染行业选择器，行业数量:', industryItems.length);
+            
+            const industrySelect = document.getElementById('industryField');
+            const industrySearch = document.getElementById('industrySearchField');
+            const industryListContainer = document.getElementById('industryDropdownList');
+            const industryDropdownBtn = document.getElementById('industryDropdownBtn');
+            const industrySummary = document.getElementById('industrySelectionSummary');
+            
+            if (!industrySelect) {
+                console.warn('BossConfigForm: 未找到行业选择器元素');
+                return;
+            }
+
+            // 更新行业摘要显示
+            const updateIndustrySummary = () => {
+                if (!industryDropdownBtn || !industrySummary) return;
+                const values = Array.from(industrySelect.selectedOptions).map(o => o.textContent);
+                if (values.length === 0) {
+                    industryDropdownBtn.textContent = '选择行业';
+                    industrySummary.textContent = '未选择';
+                } else if (values.length <= 2) {
+                    const text = values.join('、');
+                    industryDropdownBtn.textContent = text;
+                    industrySummary.textContent = `已选 ${values.length} 项：${text}`;
+                } else {
+                    industryDropdownBtn.textContent = `已选 ${values.length} 项`;
+                    industrySummary.textContent = `已选 ${values.length} 项`;
+                }
+            };
+
+            // 将updateIndustrySummary方法绑定到实例，供其他方法调用
+            this.updateIndustrySummary = updateIndustrySummary;
+
+            // 渲染行业选项
+            const renderIndustryOptions = (list) => {
+                // 保留当前已选
+                const selected = new Set(Array.from(industrySelect.selectedOptions).map(o => o.value));
+
+                // 重建隐藏select
+                industrySelect.innerHTML = '';
+                list.forEach(it => {
+                    const value = it.code ?? it.name ?? '';
+                    const label = it.name ?? String(it.code ?? '');
+                    const opt = document.createElement('option');
+                    opt.value = value;
+                    opt.textContent = label;
+                    if (selected.has(value)) opt.selected = true;
+                    industrySelect.appendChild(opt);
+                });
+
+                // 重建dropdown列表
+                if (industryListContainer) {
+                    industryListContainer.innerHTML = '';
+                    list.forEach(it => {
+                        const value = it.code ?? it.name ?? '';
+                        const label = it.name ?? String(it.code ?? '');
+
+                        const item = document.createElement('div');
+                        item.className = 'form-check mb-1';
+                        const id = `industry_chk_${value}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                        item.innerHTML = `
+                            <input class="form-check-input" type="checkbox" value="${value}" id="${id}" ${selected.has(value) ? 'checked' : ''}>
+                            <label class="form-check-label small" for="${id}">${label}</label>
+                        `;
+                        const checkbox = item.querySelector('input[type="checkbox"]');
+                        checkbox.addEventListener('change', () => {
+                            // 同步到隐藏select
+                            const option = Array.from(industrySelect.options).find(o => o.value === value);
+                            if (option) option.selected = checkbox.checked;
+                            updateIndustrySummary();
+                        });
+                        industryListContainer.appendChild(item);
+                    });
+                }
+
+                updateIndustrySummary();
+            };
+
+            renderIndustryOptions(industryItems);
+            
+            // 绑定搜索功能
+            if (industrySearch) {
+                industrySearch.addEventListener('input', () => {
+                    const kw = industrySearch.value.trim().toLowerCase();
+                    if (!kw) {
+                        renderIndustryOptions(industryItems);
+                        return;
+                    }
+                    const filtered = industryItems.filter(it =>
+                        String(it.name || '').toLowerCase().includes(kw) ||
+                        String(it.code || '').toLowerCase().includes(kw)
+                    );
+                    renderIndustryOptions(filtered);
                 });
             }
         }

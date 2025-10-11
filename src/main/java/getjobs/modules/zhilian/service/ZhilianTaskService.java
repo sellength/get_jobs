@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Service
 public class ZhilianTaskService {
 
-    private final PlaywrightManager playwrightManager;
 
     private final RecruitmentServiceFactory serviceFactory;
 
@@ -48,9 +47,8 @@ public class ZhilianTaskService {
     // 数据目录路径
     private String dataPath;
 
-    public ZhilianTaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
+    public ZhilianTaskService(RecruitmentServiceFactory serviceFactory,
             JobService jobService, JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
-        this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
@@ -76,9 +74,6 @@ public class ZhilianTaskService {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行智联招聘登录操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取智联招聘服务
             RecruitmentService zhilianService = serviceFactory.getService(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
@@ -118,9 +113,6 @@ public class ZhilianTaskService {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行智联招聘岗位采集操作");
-
-            // 确保Playwright已初始化
-            playwrightManager.ensureInitialized();
 
             // 获取智联招聘服务
             RecruitmentService zhilianService = serviceFactory.getService(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);

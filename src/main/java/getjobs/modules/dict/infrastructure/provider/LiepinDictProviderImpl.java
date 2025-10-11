@@ -1,6 +1,7 @@
 package getjobs.modules.dict.infrastructure.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.dict.config.LiepinDictConfig;
 import getjobs.modules.dict.api.DictBundle;
@@ -14,12 +15,23 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class LiepinDictProviderImpl implements DictProvider {
 
+    /**
+     * 省份编码集合
+     */
+    private static final List<String> PROVINCE_CODES = List.of(
+            "140", "260", "210", "190", "160", "060", "070", "080", "090", "200",
+            "250", "150", "170", "180", "010", "050", "020", "110", "130", "280",
+            "030", "120", "310", "270", "040", "100", "240", "290", "230", "300",
+            "220", "330", "340", "320"
+    );
+  
     private final ObjectMapper objectMapper;
     private final LiepinDictConfig liepinDictConfig;
 
@@ -99,10 +111,18 @@ public class LiepinDictProviderImpl implements DictProvider {
             }
 
             if (data.getIndustries() != null) {
-                groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(),
-                        data.getIndustries().stream()
-                                .map(item -> new DictItem(item.getCode(), item.getName()))
-                                .collect(Collectors.toList())));
+                List<DictItem> industryItems = new ArrayList<>();
+                for (var industry : data.getIndustries()) {
+                    // 添加父行业
+                    industryItems.add(new DictItem(industry.getCode(), industry.getName()));
+                    // 添加子行业（带parentCode）
+                    if (industry.getChildren() != null) {
+                        for (var child : industry.getChildren()) {
+                            industryItems.add(new DictItem(child.getCode(), child.getName(), null, null, industry.getCode()));
+                        }
+                    }
+                }
+                groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(), industryItems));
             }
 
 
@@ -130,7 +150,39 @@ public class LiepinDictProviderImpl implements DictProvider {
                                 .collect(Collectors.toList())));
             }
 
+            // 处理城市字典
+            String dictCityJsonStr = liepinDictConfig.getDictCityJson();
+            if (dictCityJsonStr != null && !dictCityJsonStr.trim().isEmpty()) {
+                try {
+                    Map<String, Map<String, Object>> cityMap = objectMapper.readValue(
+                            dictCityJsonStr, 
+                            new TypeReference<Map<String, Map<String, Object>>>() {}
+                    );
+                    
+                    List<DictItem> cityItems = cityMap.entrySet().stream()
+                            .filter(entry -> {
+                                Map<String, Object> cityInfo = entry.getValue();
+                                String provinceCode = (String) cityInfo.get("p");
+                                return provinceCode != null && PROVINCE_CODES.contains(provinceCode);
+                            })
+                            .map(entry -> {
+                                String cityCode = entry.getKey();
+                                Map<String, Object> cityInfo = entry.getValue();
+                                String cityName = (String) cityInfo.get("n");
+                                return new DictItem(cityCode, cityName);
+                            })
+                            .collect(Collectors.toList());
+                    
+                    if (!cityItems.isEmpty()) {
+                        groups.add(new DictGroup(DictGroupKey.CITY.key(), cityItems));
+                        log.info("成功加载{}个城市字典项", cityItems.size());
+                    }
+                } catch (Exception e) {
+                    log.error("解析城市字典数据失败", e);
+                }
+            }
 
+            
             log.info("成功从配置中解析出{}个猎聘字典组", groups.size());
 
         } catch (Exception e) {

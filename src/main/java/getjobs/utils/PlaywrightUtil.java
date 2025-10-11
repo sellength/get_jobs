@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Playwright工具类，提供浏览器自动化相关的功能
  */
+@Deprecated
 @Slf4j
 public class PlaywrightUtil {
 

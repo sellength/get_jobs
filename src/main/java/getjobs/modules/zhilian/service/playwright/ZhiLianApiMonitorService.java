@@ -2,11 +2,12 @@ package getjobs.modules.zhilian.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
+import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.zhilian.dto.ZhiLianApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import getjobs.utils.ZhiLianDataConverter;
-import getjobs.utils.PlaywrightUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class ZhiLianApiMonitorService {
 
     private final JobRepository jobRepository;
     private final ZhiLianDataConverter dataConverter;
+    private final PlaywrightService playwrightService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 全局接口调用频率限制：记录最后一次调用时间
@@ -52,7 +54,7 @@ public class ZhiLianApiMonitorService {
      */
     public void setupZhiLianApiMonitor() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
+            Page page = playwrightService.getPage(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
 
             // 监听智联招聘职位搜索接口的响应
             setupResponseMonitor(page);
@@ -218,7 +220,7 @@ public class ZhiLianApiMonitorService {
      */
     public boolean isMonitoringActive() {
         try {
-            BrowserContext ctx = PlaywrightUtil.getContext();
+            BrowserContext ctx = playwrightService.getContext(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
             return ctx != null;
         } catch (Exception e) {
             log.warn("检查智联招聘监控服务状态失败: {}", e.getMessage());
@@ -234,7 +236,7 @@ public class ZhiLianApiMonitorService {
             log.info("开始刷新智联招聘session");
 
             // 获取Playwright上下文
-            BrowserContext context = PlaywrightUtil.getContext();
+            BrowserContext context = playwrightService.getContext(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
             if (context == null) {
                 log.error("无法获取Playwright上下文，session刷新失败");
                 return false;

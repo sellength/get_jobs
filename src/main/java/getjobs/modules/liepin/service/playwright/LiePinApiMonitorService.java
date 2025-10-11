@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Response;
+import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.liepin.dto.LiePinApiResponse;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;
 import getjobs.utils.LiePinDataConverter;
-import getjobs.utils.PlaywrightUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class LiePinApiMonitorService {
 
     private final JobRepository jobRepository;
     private final LiePinDataConverter dataConverter;
+    private final PlaywrightService playwrightService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
@@ -35,7 +37,7 @@ public class LiePinApiMonitorService {
 
     public void setupLiePinApiMonitor() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
+            Page page = playwrightService.getPage(RecruitmentPlatformEnum.LIEPIN);
             setupResponseMonitor(page);
             log.info("猎聘API监控服务初始化完成");
         } catch (Exception e) {
@@ -45,26 +47,41 @@ public class LiePinApiMonitorService {
 
     private void setupResponseMonitor(Page page) {
         page.onResponse(response -> {
-            String url = response.url();
-            if (url.contains("/api/com.liepin.searchfront4c.pc-search-job")) {
-                handleLiePinSearchResponse(response);
+            try {
+                String url = response.url();
+                if (url.contains("/api/com.liepin.searchfront4c.pc-search-job")) {
+                    handleLiePinSearchResponse(response);
+                }
+            } catch (PlaywrightException e) {
+                // 忽略响应对象不存在的异常，避免影响主流程
+                log.debug("响应监听器处理异常(可忽略): {}", e.getMessage());
+            } catch (Exception e) {
+                log.warn("响应监听器处理发生意外异常: {}", e.getMessage());
             }
         });
     }
 
     private void handleLiePinSearchResponse(Response response) {
-        log.info("=== 猎聘职位搜索响应拦截 ===");
-        log.info("响应状态: {}", response.status());
-        log.info("响应URL: {}", response.url());
-
         try {
-            String body = response.text();
-            log.info("响应体长度: {} 字符", body.length());
-            parseAndSaveLiePinData(body, "猎聘职位搜索");
+            log.info("=== 猎聘职位搜索响应拦截 ===");
+            log.info("响应状态: {}", response.status());
+            log.info("响应URL: {}", response.url());
+
+            // 先检查响应是否有效
+            if (response.ok()) {
+                String body = response.text();
+                log.info("响应体长度: {} 字符", body.length());
+                parseAndSaveLiePinData(body, "猎聘职位搜索");
+            } else {
+                log.warn("响应状态不正常: {}", response.status());
+            }
+            log.info("==========================");
         } catch (PlaywrightException e) {
-            log.error("读取猎聘响应体失败: {}", e.getMessage());
+            // 响应对象已经不存在或无法访问
+            log.debug("读取猎聘响应体失败(响应对象可能已清理): {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("处理猎聘响应时发生异常: {}", e.getMessage(), e);
         }
-        log.info("==========================");
     }
 
     @Transactional

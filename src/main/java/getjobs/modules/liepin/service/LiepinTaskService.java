@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 @Service
 public class LiepinTaskService {
 
-    private final PlaywrightManager playwrightManager;
 
     private final RecruitmentServiceFactory serviceFactory;
 
@@ -45,9 +44,8 @@ public class LiepinTaskService {
 
     private String dataPath;
 
-    public LiepinTaskService(PlaywrightManager playwrightManager, RecruitmentServiceFactory serviceFactory,
+    public LiepinTaskService(RecruitmentServiceFactory serviceFactory,
             JobService jobService, JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
-        this.playwrightManager = playwrightManager;
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
@@ -67,7 +65,6 @@ public class LiepinTaskService {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行猎聘登录操作");
-            playwrightManager.ensureInitialized();
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
             boolean success = liepinService.login(config);
 
@@ -96,7 +93,6 @@ public class LiepinTaskService {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行猎聘岗位采集操作");
-            playwrightManager.ensureInitialized();
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
 
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集岗位");

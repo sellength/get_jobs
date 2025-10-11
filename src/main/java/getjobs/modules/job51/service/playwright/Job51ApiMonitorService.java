@@ -2,11 +2,12 @@ package getjobs.modules.job51.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
+import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.job51.dto.Job51ApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import getjobs.utils.Job51DataConverter;
-import getjobs.utils.PlaywrightUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class Job51ApiMonitorService {
 
     private final JobRepository jobRepository;
     private final Job51DataConverter dataConverter;
+    private final PlaywrightService playwrightService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 全局接口调用频率限制：记录最后一次调用时间
@@ -52,7 +54,7 @@ public class Job51ApiMonitorService {
      */
     public void setupJob51ApiMonitor() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
+            Page page = playwrightService.getPage(RecruitmentPlatformEnum.JOB_51);
 
             // 监听51Job职位搜索接口的响应
             setupResponseMonitor(page);
@@ -219,7 +221,7 @@ public class Job51ApiMonitorService {
      */
     public boolean isMonitoringActive() {
         try {
-            BrowserContext ctx = PlaywrightUtil.getContext();
+            BrowserContext ctx = playwrightService.getContext(RecruitmentPlatformEnum.JOB_51);
             return ctx != null;
         } catch (Exception e) {
             log.warn("检查51Job监控服务状态失败: {}", e.getMessage());
@@ -235,7 +237,7 @@ public class Job51ApiMonitorService {
             log.info("开始刷新51Job session");
 
             // 获取Playwright上下文
-            BrowserContext context = PlaywrightUtil.getContext();
+            BrowserContext context = playwrightService.getContext(RecruitmentPlatformEnum.JOB_51);
             if (context == null) {
                 log.error("无法获取Playwright上下文，session刷新失败");
                 return false;

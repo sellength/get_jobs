@@ -7,6 +7,7 @@ import getjobs.modules.dict.api.DictGroup;
 import getjobs.modules.dict.api.DictGroupKey;
 import getjobs.modules.dict.api.DictItem;
 import getjobs.modules.dict.domain.DictProvider;
+import getjobs.modules.dict.infrastructure.config.ZhilianDictConfig;
 import getjobs.modules.dict.infrastructure.provider.dto.zhilian.ZhilianBaseData;
 import getjobs.modules.dict.infrastructure.provider.dto.zhilian.ZhilianDictItem;
 import getjobs.modules.dict.infrastructure.provider.dto.zhilian.ZhilianResponse;
@@ -28,10 +29,12 @@ public class ZhilianDictProviderImpl implements DictProvider {
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final ZhilianDictConfig zhilianDictConfig;
 
-    public ZhilianDictProviderImpl(WebClient webClient, ObjectMapper objectMapper) {
+    public ZhilianDictProviderImpl(WebClient webClient, ObjectMapper objectMapper, ZhilianDictConfig zhilianDictConfig) {
         this.webClient = webClient;
         this.objectMapper = objectMapper;
+        this.zhilianDictConfig = zhilianDictConfig;
     }
 
     @Override
@@ -133,6 +136,9 @@ public class ZhilianDictProviderImpl implements DictProvider {
             log.warn("获取智联招聘字典数据失败: {}", e.getMessage());
         }
 
+        // 处理目标行业
+        processIndustryData(groups);
+
         return new DictBundle(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, groups);
     }
 
@@ -227,5 +233,55 @@ public class ZhilianDictProviderImpl implements DictProvider {
         }
 
         return result;
+    }
+
+    /**
+     * 处理目标行业数据
+     * 优先返回 sublist 不为空的大行业类目，再返回所有行业对象下的 sublist 集合中的子行业
+     */
+    private void processIndustryData(List<DictGroup> groups) {
+        try {
+            List<ZhilianDictItem> industryList = zhilianDictConfig.getIndustryList();
+            if (industryList == null || industryList.isEmpty()) {
+                log.warn("智联招聘行业字典数据为空");
+                return;
+            }
+
+            List<DictItem> industryItems = new ArrayList<>();
+
+            for (ZhilianDictItem industry : industryList) {
+                // 过滤掉已删除和"不限"选项
+                if (industry.deleted() != null && industry.deleted()) {
+                    continue;
+                }
+                if (industry.code() == null || industry.code().equals("-1")) {
+                    continue;
+                }
+
+                // 优先添加 sublist 不为空的大行业类目
+                if (industry.sublist() != null && !industry.sublist().isEmpty()) {
+                    industryItems.add(new DictItem(industry.code(), industry.name()));
+
+                    // 添加所有子行业（过滤掉"不限"和已删除的）
+                    for (ZhilianDictItem subIndustry : industry.sublist()) {
+                        if (subIndustry.deleted() != null && subIndustry.deleted()) {
+                            continue;
+                        }
+                        // if (subIndustry.code() == null || subIndustry.code().equals(industry.code())) {
+                        //     // 过滤掉 code 和父级相同的"不限"子项
+                        //     continue;
+                        // }
+                        industryItems.add(new DictItem(subIndustry.code(), subIndustry.name(), null, null, industry.code()));
+                    }
+                }
+            }
+
+            if (!industryItems.isEmpty()) {
+                groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(), industryItems));
+                log.info("成功处理智联招聘行业字典数据，共 {} 条", industryItems.size());
+            }
+        } catch (Exception e) {
+            log.warn("处理智联招聘行业字典数据失败: {}", e.getMessage());
+        }
     }
 }

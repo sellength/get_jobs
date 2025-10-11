@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.entity.JobEntity;
+import getjobs.repository.entity.UserProfile;
 import getjobs.repository.ConfigRepository;
 import getjobs.repository.JobRepository;
+import getjobs.repository.UserProfileRepository;
 import getjobs.service.DataBackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class DataBackupServiceImpl implements DataBackupService {
 
     private final ConfigRepository configRepository;
     private final JobRepository jobRepository;
+    private final UserProfileRepository userProfileRepository;
     private final ObjectMapper objectMapper;
 
     private static final String BACKUP_DIR_NAME = "getjobs";
@@ -76,11 +79,16 @@ public class DataBackupServiceImpl implements DataBackupService {
         List<JobEntity> jobs = jobRepository.findAll();
         backupData.put("jobs", jobs);
 
+        // 导出用户求职信息
+        List<UserProfile> userProfiles = userProfileRepository.findAll();
+        backupData.put("userProfiles", userProfiles);
+
         // 添加元数据
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("exportTime", LocalDateTime.now().format(DATE_FORMATTER));
         metadata.put("configCount", configs.size());
         metadata.put("jobCount", jobs.size());
+        metadata.put("userProfileCount", userProfiles.size());
         metadata.put("version", "1.0");
         backupData.put("metadata", metadata);
 
@@ -88,8 +96,8 @@ public class DataBackupServiceImpl implements DataBackupService {
         Path backupFilePath = getBackupFilePath();
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(backupFilePath.toFile(), backupData);
 
-        log.info("数据备份完成 - 配置: {} 条, 职位: {} 条, 备份文件: {}",
-                configs.size(), jobs.size(), backupFilePath);
+        log.info("数据备份完成 - 配置: {} 条, 职位: {} 条, 用户求职信息: {} 条, 备份文件: {}",
+                configs.size(), jobs.size(), userProfiles.size(), backupFilePath);
 
         return backupFilePath.toString();
     }
@@ -142,6 +150,17 @@ public class DataBackupServiceImpl implements DataBackupService {
             log.info("恢复职位数据: {} 条", jobMaps.size());
         }
 
+        // 恢复用户求职信息
+        if (backupData.containsKey("userProfiles")) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> userProfileMaps = (List<Map<String, Object>>) backupData.get("userProfiles");
+            for (Map<String, Object> userProfileMap : userProfileMaps) {
+                UserProfile userProfile = objectMapper.convertValue(userProfileMap, UserProfile.class);
+                userProfileRepository.save(userProfile);
+            }
+            log.info("恢复用户求职信息: {} 条", userProfileMaps.size());
+        }
+
         // 输出备份元数据信息
         if (backupData.containsKey("metadata")) {
             @SuppressWarnings("unchecked")
@@ -176,6 +195,7 @@ public class DataBackupServiceImpl implements DataBackupService {
                     info.put("exportTime", metadata.get("exportTime"));
                     info.put("configCount", metadata.get("configCount"));
                     info.put("jobCount", metadata.get("jobCount"));
+                    info.put("userProfileCount", metadata.get("userProfileCount"));
                     info.put("version", metadata.get("version"));
                 }
             } catch (Exception e) {

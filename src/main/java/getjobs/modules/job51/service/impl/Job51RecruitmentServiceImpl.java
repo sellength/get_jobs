@@ -3,19 +3,23 @@ package getjobs.modules.job51.service.impl;
 import com.microsoft.playwright.Page;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.dto.ConfigDTO;
+import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.job51.service.Job51ElementLocators;
 import getjobs.service.RecruitmentService;
-import getjobs.utils.PlaywrightUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,11 +31,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class Job51RecruitmentServiceImpl implements RecruitmentService {
 
     private static final String HOME_URL = RecruitmentPlatformEnum.JOB_51.getHomeUrl();
     private static final String LOGIN_URL = "https://login.51job.com/login.php";
     private static final String SEARCH_JOB_URL = "https://we.51job.com/pc/search?";
+
+    private final PlaywrightService playwrightService;
+    private Page page;
+
+    @PostConstruct
+    public void init() {
+        this.page = playwrightService.getPage(RecruitmentPlatformEnum.JOB_51);
+    }
 
     @Override
     public RecruitmentPlatformEnum getPlatform() {
@@ -44,7 +57,6 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
 
         try {
             // 使用Playwright打开网站
-            Page page = PlaywrightUtil.getPageObject();
             page.navigate(HOME_URL);
 
             // 检查是否需要登录
@@ -65,7 +77,6 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     public List<JobDTO> collectJobs(ConfigDTO config) {
         log.info("开始执行51job岗位采集操作");
         try {
-            Page page = PlaywrightUtil.getPageObject();
             config.getCityCodeCodes().forEach(cityCode -> {
                 // 构造完整的搜索条件
                 String searchParams = buildSearchParams(cityCode, config);
@@ -81,7 +92,12 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
                     log.info("正在处理第{}页数据", pageNumber);
 
                     // 添加3-5秒随机延迟，避免过快点击分页
-                    PlaywrightUtil.randomSleep(3, 5);
+                    try {
+                        int randomSeconds = new Random().nextInt(3) + 3; // 3-5秒
+                        TimeUnit.SECONDS.sleep(randomSeconds);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
 
                     // 在点击分页后也需要等待页面加载
                     waitForPageContentLoad(page);
@@ -126,7 +142,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
         log.info("开始执行51job岗位投递操作，待投递岗位数量: {}", jobDTOS.size());
 
         // 在新标签页中打开岗位详情
-        try (Page jobPage = PlaywrightUtil.getPageObject().context().newPage()) {
+        try (Page jobPage = page.context().newPage()) {
 
             AtomicInteger count = new AtomicInteger();
 
@@ -139,7 +155,12 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
                     count.getAndIncrement();
 
                     // 添加3-5秒随机延迟，避免投递过快
-                    PlaywrightUtil.randomSleep(3, 5);
+                    try {
+                        int randomSeconds = new Random().nextInt(3) + 3; // 3-5秒
+                        TimeUnit.SECONDS.sleep(randomSeconds);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
 
                 });
 
@@ -253,8 +274,6 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
      */
     private boolean isLoginRequired() {
         try {
-            Page page = PlaywrightUtil.getPageObject();
-
             // 检查是否存在登录按钮
             if (Job51ElementLocators.hasLoginElement(page)) {
                 log.debug("检测到登录按钮，需要登录");
@@ -273,9 +292,8 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
      */
     @SneakyThrows
     private boolean login() {
-        Page page = PlaywrightUtil.getPageObject();
         page.navigate(LOGIN_URL);
-        PlaywrightUtil.sleep(3);
+        TimeUnit.SECONDS.sleep(3);
 
         try {
             // 检查是否已经登录
@@ -303,7 +321,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
             }
 
             // 等待一段时间后再次检查
-            PlaywrightUtil.sleep(3);
+            TimeUnit.SECONDS.sleep(3);
         }
 
         return true;
@@ -330,12 +348,19 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
 
 
             // 额外等待一段时间，确保JS完全执行完毕
-            PlaywrightUtil.sleep(2);
+            TimeUnit.SECONDS.sleep(2);
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("等待页面加载被中断: {}", e.getMessage());
         } catch (Exception e) {
             log.error("等待页面加载时发生错误: {}", e.getMessage());
             // 发生错误时也等待一段时间
-            PlaywrightUtil.sleep(3);
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -359,12 +384,19 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
             }
 
             // 短暂等待确保页面稳定
-            PlaywrightUtil.sleep(1);
+            TimeUnit.SECONDS.sleep(1);
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("等待页面内容加载被中断: {}", e.getMessage());
         } catch (Exception e) {
             log.error("等待页面内容加载时发生错误: {}", e.getMessage());
             // 发生错误时也等待一段时间
-            PlaywrightUtil.sleep(2);
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -379,10 +411,13 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
                     scanner.nextLine();
                     return true;
                 }
+                TimeUnit.SECONDS.sleep(1);
             } catch (IOException e) {
                 // 忽略异常
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
-            PlaywrightUtil.sleep(1);
         }
         return false;
     }
