@@ -72,89 +72,208 @@
     <div class="tab-content" id="platformTabsContent">
         <!-- 公共配置 -->
         <div class="tab-pane fade" id="common-config-pane" role="tabpanel" aria-labelledby="common-config-tab">
-            <div class="row g-2" style="height: calc(100vh - 200px);">
-                <div class="col-lg-8 offset-lg-2">
+            <div class="row g-3" style="height: calc(100vh - 200px);">
+                <!-- 左侧：黑名单配置 -->
+                <div class="col-lg-6">
                     <div class="card shadow-lg h-100">
                         <div class="card-header bg-white border-0 py-3">
                             <h5 class="mb-0 text-dark">
-                                <i class="bi bi-sliders me-2 text-primary"></i>公共配置
+                                <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>黑名单过滤配置
                             </h5>
-                            <small class="text-muted">此配置将应用于所有招聘平台</small>
+                            <small class="text-muted">应用于所有招聘平台的岗位过滤</small>
                         </div>
-                        <div class="card-body p-4">
-                            <div class="d-flex flex-column h-100">
-                                <!-- 黑名单配置卡片 -->
-                                <div class="config-card mb-3">
-                                    <h6 class="card-title text-danger mb-3">
-                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>黑名单过滤配置
-                                    </h6>
+                        <div class="card-body p-4" style="overflow-y: auto;">
+                            <!-- 岗位黑名单关键字 -->
+                            <div class="mb-4">
+                                <label for="commonJobBlacklistKeywords" class="form-label fw-semibold">
+                                    岗位黑名单关键字
+                                    <i class="bi bi-question-circle text-muted ms-1"
+                                       data-bs-toggle="tooltip"
+                                       title="职位标题或描述中包含这些关键字的岗位将被过滤。输入关键字后按回车添加"></i>
+                                </label>
+                                <div class="tags-input-container" id="jobBlacklistTagsContainer">
+                                    <div class="tags-wrapper" id="jobBlacklistTags"></div>
+                                    <input type="text" class="tags-input" id="commonJobBlacklistKeywords" 
+                                           placeholder="输入关键字后按回车添加">
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    职位标题、职位描述中包含这些关键字的岗位将被自动过滤
+                                </div>
+                            </div>
 
-                                    <!-- 岗位黑名单关键字 -->
-                                    <div class="mb-4">
-                                        <label for="commonJobBlacklistKeywords" class="form-label fw-semibold">
-                                            岗位黑名单关键字
-                                            <i class="bi bi-question-circle text-muted ms-1"
-                                               data-bs-toggle="tooltip"
-                                               title="职位标题或描述中包含这些关键字的岗位将被过滤。输入关键字后按回车添加"></i>
-                                        </label>
-                                        <div class="tags-input-container" id="jobBlacklistTagsContainer">
-                                            <div class="tags-wrapper" id="jobBlacklistTags"></div>
-                                            <input type="text" class="tags-input" id="commonJobBlacklistKeywords" 
-                                                   placeholder="输入关键字后按回车添加">
-                                        </div>
-                                        <div class="form-text">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            职位标题、职位描述中包含这些关键字的岗位将被自动过滤
-                                        </div>
+                            <!-- 公司黑名单关键字 -->
+                            <div class="mb-4">
+                                <label for="commonCompanyBlacklistKeywords" class="form-label fw-semibold">
+                                    公司黑名单关键字
+                                    <i class="bi bi-question-circle text-muted ms-1"
+                                       data-bs-toggle="tooltip"
+                                       title="公司名称中包含这些关键字的公司将被过滤。输入关键字后按回车添加"></i>
+                                </label>
+                                <div class="tags-input-container" id="companyBlacklistTagsContainer">
+                                    <div class="tags-wrapper" id="companyBlacklistTags"></div>
+                                    <input type="text" class="tags-input" id="commonCompanyBlacklistKeywords" 
+                                           placeholder="输入关键字后按回车添加">
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    公司名称中包含这些关键字的岗位将被自动过滤
+                                </div>
+                            </div>
+
+                            <!-- 示例说明 -->
+                            <div class="alert alert-info" role="alert">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-lightbulb me-2"></i>使用说明
+                                </h6>
+                                <ul class="mb-0 small">
+                                    <li>关键字<strong>不区分大小写</strong>，系统会自动进行模糊匹配</li>
+                                    <li>输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除</li>
+                                    <li>建议将常见的外包、中介类关键字加入黑名单</li>
+                                    <li>保存后将立即生效，应用于所有招聘平台的岗位过滤</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：候选人信息配置 -->
+                <div class="col-lg-6">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="mb-0 text-dark">
+                                <i class="bi bi-person-circle me-2 text-primary"></i>候选人信息配置
+                            </h5>
+                            <small class="text-muted">用于 AI 生成个性化沟通内容</small>
+                        </div>
+                        <div class="card-body p-4" style="overflow-y: auto;">
+                            <!-- 基本信息 -->
+                            <div class="mb-3">
+                                <label for="profileRole" class="form-label fw-semibold">
+                                    角色/职位 <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="profileRole" 
+                                       placeholder="例如: Java 后端开发/高级">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="profileYears" class="form-label fw-semibold">
+                                    工作年限 <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="profileYears" 
+                                       placeholder="例如: 8" min="0" max="50">
+                            </div>
+                            
+                            <!-- 从事领域 -->
+                            <div class="mb-3">
+                                <label for="profileDomains" class="form-label fw-semibold">
+                                    从事领域
+                                </label>
+                                <input type="text" class="form-control" id="profileDomains" 
+                                       placeholder="例如: 电商,支付,金融 (用逗号分隔)">
+                                <small class="form-text text-muted">多个领域请用英文逗号分隔</small>
+                            </div>
+                            
+                            <!-- 核心技术栈 -->
+                            <div class="mb-3">
+                                <label for="profileCoreStack" class="form-label fw-semibold">
+                                    核心技术栈
+                                </label>
+                                <textarea class="form-control" id="profileCoreStack" rows="3" 
+                                          placeholder="例如: Spring Boot,Spring Cloud Gateway,Redis,MySQL,MQ(Artemis/Kafka),Docker"></textarea>
+                                <small class="form-text text-muted">多个技术请用英文逗号分隔</small>
+                            </div>
+                            
+                            <!-- 项目规模 -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">项目规模</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label for="profileQpsPeak" class="form-label small">峰值QPS</label>
+                                        <input type="text" class="form-control" id="profileQpsPeak" 
+                                               placeholder="例如: 3k+">
                                     </div>
-
-                                    <!-- 公司黑名单关键字 -->
-                                    <div class="mb-4">
-                                        <label for="commonCompanyBlacklistKeywords" class="form-label fw-semibold">
-                                            公司黑名单关键字
-                                            <i class="bi bi-question-circle text-muted ms-1"
-                                               data-bs-toggle="tooltip"
-                                               title="公司名称中包含这些关键字的公司将被过滤。输入关键字后按回车添加"></i>
-                                        </label>
-                                        <div class="tags-input-container" id="companyBlacklistTagsContainer">
-                                            <div class="tags-wrapper" id="companyBlacklistTags"></div>
-                                            <input type="text" class="tags-input" id="commonCompanyBlacklistKeywords" 
-                                                   placeholder="输入关键字后按回车添加">
-                                        </div>
-                                        <div class="form-text">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            公司名称中包含这些关键字的岗位将被自动过滤
-                                        </div>
-                                    </div>
-
-                                    <!-- 示例说明 -->
-                                    <div class="alert alert-info" role="alert">
-                                        <h6 class="alert-heading">
-                                            <i class="bi bi-lightbulb me-2"></i>使用说明
-                                        </h6>
-                                        <ul class="mb-0 small">
-                                            <li>关键字<strong>不区分大小写</strong>，系统会自动进行模糊匹配</li>
-                                            <li>输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除</li>
-                                            <li>建议将常见的外包、中介类关键字加入黑名单</li>
-                                            <li>保存后将立即生效，应用于所有招聘平台的岗位过滤</li>
-                                        </ul>
+                                    <div class="col-6">
+                                        <label for="profileSla" class="form-label small">SLA</label>
+                                        <input type="text" class="form-control" id="profileSla" 
+                                               placeholder="例如: 99.99%">
                                     </div>
                                 </div>
-
-                                <!-- 操作按钮 -->
-                                <div class="mt-auto">
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
-                                            <button type="button" class="btn btn-primary w-100" id="saveCommonConfigBtn">
-                                                <i class="bi bi-save me-2"></i>保存公共配置
-                                            </button>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <button type="button" class="btn btn-outline-secondary w-100" id="resetCommonConfigBtn">
-                                                <i class="bi bi-arrow-counterclockwise me-2"></i>重置配置
-                                            </button>
-                                        </div>
+                            </div>
+                            
+                            <!-- 主要成就 -->
+                            <div class="mb-3">
+                                <label for="profileAchievements" class="form-label fw-semibold">
+                                    主要成就
+                                </label>
+                                <textarea class="form-control" id="profileAchievements" rows="3" 
+                                          placeholder="例如: 订单超时处理从5分钟降至30秒，稳定性至99.99%; 重构网关限流与灰度发布，峰值3k QPS 稳定"></textarea>
+                                <small class="form-text text-muted">多个成就请用分号分隔</small>
+                            </div>
+                            
+                            <!-- 个人强项 -->
+                            <div class="mb-3">
+                                <label for="profileStrengths" class="form-label fw-semibold">
+                                    个人强项/优势
+                                </label>
+                                <input type="text" class="form-control" id="profileStrengths" 
+                                       placeholder="例如: 性能调优,微服务治理,疑难排障">
+                                <small class="form-text text-muted">多个强项请用英文逗号分隔</small>
+                            </div>
+                            
+                            <!-- 待提升方面 -->
+                            <div class="mb-3">
+                                <label for="profileImprovements" class="form-label fw-semibold">
+                                    待提升方面
+                                </label>
+                                <input type="text" class="form-control" id="profileImprovements" 
+                                       placeholder="例如: 前端薄弱，已在补 Vue3">
+                                <small class="form-text text-muted">多个方面请用英文逗号分隔</small>
+                            </div>
+                            
+                            <!-- 到岗时间及地点期望 -->
+                            <div class="mb-3">
+                                <label for="profileAvailability" class="form-label fw-semibold">
+                                    到岗时间及地点期望
+                                </label>
+                                <input type="text" class="form-control" id="profileAvailability" 
+                                       placeholder="例如: 两周到岗，广州/可远程">
+                            </div>
+                            
+                            <!-- 个人链接 -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">个人链接</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label for="profileGithub" class="form-label small">GitHub</label>
+                                        <input type="url" class="form-control" id="profileGithub" 
+                                               placeholder="https://github.com/username">
                                     </div>
+                                    <div class="col-6">
+                                        <label for="profilePortfolio" class="form-label small">作品集</label>
+                                        <input type="url" class="form-control" id="profilePortfolio" 
+                                               placeholder="https://portfolio.com">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部操作按钮 -->
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="row g-2 justify-content-center">
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary w-100" id="saveCommonConfigBtn">
+                                        <i class="bi bi-save me-2"></i>保存所有配置
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-outline-secondary w-100" id="resetCommonConfigBtn">
+                                        <i class="bi bi-arrow-counterclockwise me-2"></i>重置配置
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2923,6 +3042,9 @@
 <!-- 公共工具类 -->
 <script src="js/common.js"></script>
 
+<!-- 任务执行控制器 -->
+<script src="js/task-executor.js"></script>
+
 <!-- 视图模块 -->
 <script src="js/views/common-config.js"></script>
 <script src="js/views/boss-config-form.js"></script>
@@ -2935,169 +3057,8 @@
 <script src="js/views/job51-records-vue.js"></script>
 <script src="js/views/liepin-config-form.js"></script>
 <script src="js/views/liepin-records-vue.js"></script>
-<script src="js/views/ai-prompt.js"></script>
 <!-- App Entrypoint -->
 <script src="js/app.js"></script>
-
-<!-- AI Prompt Floating Panel -->
-<div id="aiPromptPanel" class="ai-prompt-panel">
-    <div class="ai-prompt-handle">
-        <i class="bi bi-robot"></i>
-    </div>
-    <div class="ai-prompt-content">
-        <h5>
-            <i class="bi bi-pencil-square me-2"></i>
-            求职信息补全（AI使用）
-        </h5>
-        
-        <!-- 页签导航 -->
-        <ul class="nav nav-tabs nav-fill mb-3" id="aiPromptTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane"
-                        type="button" role="tab" aria-controls="profile-pane" aria-selected="true">
-                    <i class="bi bi-person-circle me-1"></i>候选人信息
-                </button>
-            </li>
-            <!--<li class="nav-item" role="presentation">
-                <button class="nav-link" id="greeting-tab" data-bs-toggle="tab" data-bs-target="#greeting-pane"
-                        type="button" role="tab" aria-controls="greeting-pane" aria-selected="false">
-                    <i class="bi bi-chat-dots me-1"></i>打招呼内容
-                </button>
-            </li>-->
-        </ul>
-        
-        <!-- 页签内容 -->
-        <div class="tab-content" id="aiPromptTabsContent">
-            <!-- 候选人信息页签 -->
-            <div class="tab-pane fade show active" id="profile-pane" role="tabpanel" aria-labelledby="profile-tab">
-                <div class="profile-form" style="max-height: 400px; overflow-y: auto;">
-                    <!-- 基本信息 -->
-                    <div class="mb-3">
-                        <label for="profileRole" class="form-label small fw-semibold">
-                            角色/职位 <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="profileRole" 
-                               placeholder="例如: Java 后端开发/高级">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="profileYears" class="form-label small fw-semibold">
-                            工作年限 <span class="text-danger">*</span>
-                        </label>
-                        <input type="number" class="form-control form-control-sm" id="profileYears" 
-                               placeholder="例如: 8" min="0" max="50">
-                    </div>
-                    
-                    <!-- 从事领域 -->
-                    <div class="mb-3">
-                        <label for="profileDomains" class="form-label small fw-semibold">
-                            从事领域
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="profileDomains" 
-                               placeholder="例如: 电商,支付,金融 (用逗号分隔)">
-                        <small class="form-text text-muted">多个领域请用英文逗号分隔</small>
-                    </div>
-                    
-                    <!-- 核心技术栈 -->
-                    <div class="mb-3">
-                        <label for="profileCoreStack" class="form-label small fw-semibold">
-                            核心技术栈
-                        </label>
-                        <textarea class="form-control form-control-sm" id="profileCoreStack" rows="3" 
-                                  placeholder="例如: Spring Boot,Spring Cloud Gateway,Redis,MySQL,MQ(Artemis/Kafka),Docker"></textarea>
-                        <small class="form-text text-muted">多个技术请用英文逗号分隔</small>
-                    </div>
-                    
-                    <!-- 项目规模 -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">项目规模</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label for="profileQpsPeak" class="form-label small">峰值QPS</label>
-                                <input type="text" class="form-control form-control-sm" id="profileQpsPeak" 
-                                       placeholder="例如: 3k+">
-                            </div>
-                            <div class="col-6">
-                                <label for="profileSla" class="form-label small">SLA</label>
-                                <input type="text" class="form-control form-control-sm" id="profileSla" 
-                                       placeholder="例如: 99.99%">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 主要成就 -->
-                    <div class="mb-3">
-                        <label for="profileAchievements" class="form-label small fw-semibold">
-                            主要成就
-                        </label>
-                        <textarea class="form-control form-control-sm" id="profileAchievements" rows="3" 
-                                  placeholder="例如: 订单超时处理从5分钟降至30秒，稳定性至99.99%; 重构网关限流与灰度发布，峰值3k QPS 稳定"></textarea>
-                        <small class="form-text text-muted">多个成就请用分号分隔</small>
-                    </div>
-                    
-                    <!-- 个人强项 -->
-                    <div class="mb-3">
-                        <label for="profileStrengths" class="form-label small fw-semibold">
-                            个人强项/优势
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="profileStrengths" 
-                               placeholder="例如: 性能调优,微服务治理,疑难排障">
-                        <small class="form-text text-muted">多个强项请用英文逗号分隔</small>
-                    </div>
-                    
-                    <!-- 待提升方面 -->
-                    <div class="mb-3">
-                        <label for="profileImprovements" class="form-label small fw-semibold">
-                            待提升方面
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="profileImprovements" 
-                               placeholder="例如: 前端薄弱，已在补 Vue3">
-                        <small class="form-text text-muted">多个方面请用英文逗号分隔</small>
-                    </div>
-                    
-                    <!-- 到岗时间及地点期望 -->
-                    <div class="mb-3">
-                        <label for="profileAvailability" class="form-label small fw-semibold">
-                            到岗时间及地点期望
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="profileAvailability" 
-                               placeholder="例如: 两周到岗，广州/可远程">
-                    </div>
-                    
-                    <!-- 个人链接 -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">个人链接</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label for="profileGithub" class="form-label small">GitHub</label>
-                                <input type="url" class="form-control form-control-sm" id="profileGithub" 
-                                       placeholder="https://github.com/username">
-                            </div>
-                            <div class="col-6">
-                                <label for="profilePortfolio" class="form-label small">作品集</label>
-                                <input type="url" class="form-control form-control-sm" id="profilePortfolio" 
-                                       placeholder="https://portfolio.com">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 打招呼内容页签 -->
-            <div class="tab-pane fade" id="greeting-pane" role="tabpanel" aria-labelledby="greeting-tab">
-                <div class="greeting-form">
-                </div>
-            </div>
-        </div>
-        
-        <!-- 操作按钮 -->
-        <div class="d-grid gap-2 mt-3">
-            <button id="saveAiPromptBtn" class="btn btn-primary btn-sm w-100">
-                <i class="bi bi-save me-1"></i>保存候选人信息
-            </button>
-        </div>
-    </div>
-</div>
 
 <!-- Toast Container -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">

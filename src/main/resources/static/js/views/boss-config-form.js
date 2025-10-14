@@ -7,15 +7,8 @@
             this.config = {};
             this.isRunning = false;
             this.dictDataLoaded = false; // 字典数据加载状态标志
-            this.taskStates = {
-                loginTaskId: null,
-                collectTaskId: null,
-                filterTaskId: null,
-                applyTaskId: null
-            };
-            this.statusPollingInterval = null; // 状态轮询定时器
-            this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
             this.hrStatusTagsInput = null; // HR状态标签输入组件
+            this.taskExecutor = null; // 任务执行控制器
             this.init();
         }
 
@@ -25,8 +18,31 @@
             this.bindEvents();
             // 先加载字典数据，再加载配置数据，确保下拉框已准备好
             this.loadDataSequentially();
-            // 初始化时启动状态轮询，确保能及时获取到登录状态
-            this.startStatusPolling();
+            // 初始化任务执行控制器
+            this.initTaskExecutor();
+        }
+        
+        initTaskExecutor() {
+            // 创建任务执行控制器实例
+            this.taskExecutor = new TaskExecutor(
+                'boss',
+                '/api/boss',
+                '', // boss使用不带前缀的元素ID
+                this, // configProvider
+                {
+                    showToast: this.showToast.bind(this),
+                    showAlertModal: (title, message) => {
+                        if (window.CommonUtils && window.CommonUtils.showAlertModal) {
+                            window.CommonUtils.showAlertModal(title, message);
+                        }
+                    },
+                    showConfirmModal: (title, message, onConfirm, onCancel) => {
+                        if (window.CommonUtils && window.CommonUtils.showConfirmModal) {
+                            window.CommonUtils.showConfirmModal(title, message, onConfirm, onCancel);
+                        }
+                    }
+                }
+            );
         }
 
         initializeTagsInput() {
@@ -51,23 +67,6 @@
             });
             document.getElementById('backupDataBtn')?.addEventListener('click', () => {
                 this.handleBackupData();
-            });
-
-            // 任务执行按钮
-            document.getElementById('loginBtn')?.addEventListener('click', () => {
-                this.handleLogin();
-            });
-            document.getElementById('collectBtn')?.addEventListener('click', () => {
-                this.handleCollect();
-            });
-            document.getElementById('filterBtn')?.addEventListener('click', () => {
-                this.handleFilter();
-            });
-            document.getElementById('deliverBtn')?.addEventListener('click', () => {
-                this.handleApply();
-            });
-            document.getElementById('resetTasksBtn')?.addEventListener('click', () => {
-                this.resetTaskFlow();
             });
 
             document.getElementById('sendImgResumeCheckBox')?.addEventListener('change', (event) => {
@@ -207,7 +206,8 @@
                 recommendJobs: document.getElementById('recommendJobsCheckBox').checked,
                 enableAIJobMatchDetection: document.getElementById('enableAIJobMatchDetectionCheckBox').checked,
                 enableAIGreeting: document.getElementById('enableAIGreetingCheckBox').checked,
-                checkStateOwned: document.getElementById('checkStateOwnedCheckBox').checked
+                checkStateOwned: document.getElementById('checkStateOwnedCheckBox').checked,
+                bossHrStatusKeywords: this.hrStatusTagsInput ? this.hrStatusTagsInput.getValue() : ''
             };
             localStorage.setItem('bossConfig', JSON.stringify(this.config));
             try {
@@ -411,16 +411,20 @@
 
         // 填充HR状态标签
         populateHrStatusTags() {
-            if (this.hrStatusTagsInput && this.config.deadStatus) {
-                // 处理数组格式或逗号分隔的字符串
-                let statusArray = [];
-                if (Array.isArray(this.config.deadStatus)) {
-                    statusArray = this.config.deadStatus;
-                } else if (typeof this.config.deadStatus === 'string') {
-                    statusArray = this.config.deadStatus.split(',').map(s => s.trim()).filter(Boolean);
+            if (this.hrStatusTagsInput) {
+                // 优先使用新字段 bossHrStatusKeywords，兼容旧字段 deadStatus
+                const statusData = this.config.bossHrStatusKeywords || this.config.deadStatus;
+                if (statusData) {
+                    // 处理数组格式或逗号分隔的字符串
+                    let statusArray = [];
+                    if (Array.isArray(statusData)) {
+                        statusArray = statusData;
+                    } else if (typeof statusData === 'string') {
+                        statusArray = statusData.split(',').map(s => s.trim()).filter(Boolean);
+                    }
+                    console.log('BossConfigForm: 填充HR状态标签:', statusArray);
+                    this.hrStatusTagsInput.setTags(statusArray);
                 }
-                console.log('BossConfigForm: 填充HR状态标签:', statusArray);
-                this.hrStatusTagsInput.setTags(statusArray);
             }
         }
 
@@ -799,18 +803,6 @@
             }
         }
 
-        handleStartOnly() {
-            if (this.isRunning) {
-                alert('任务已在运行中...');
-                return;
-            }
-            if (!this.validateRequiredFields()) {
-                alert('请先完善必填项再开始执行');
-                return;
-            }
-            this.startExecution();
-        }
-
         validateRequiredFields() {
             const requiredFields = [
                 'keywordsField',
@@ -839,212 +831,7 @@
                 }
             }
 
-            return isValid && this.validateSalaryRange() ;
-        }
-
-        startExecution() {
-            this.isRunning = true;
-            const startBtn = document.getElementById('startDeliveryBtn');
-            if (startBtn) {
-                startBtn.disabled = true;
-                startBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>执行中...';
-                startBtn.classList.add('loading');
-            }
-            this.simulateExecution();
-        }
-
-        simulateExecution() {
-            const steps = [
-                { message: '正在启动浏览器...', delay: 2000 },
-                { message: '正在登录Boss直聘...', delay: 3000 },
-                { message: '正在设置搜索条件...', delay: 2000 },
-                { message: '正在筛选职位...', delay: 4000 },
-                { message: '正在投递简历...', delay: 5000 },
-                { message: '正在发送打招呼消息...', delay: 3000 },
-                { message: '任务执行完成！', delay: 1000 }
-            ];
-            let currentStep = 0;
-            const executeStep = () => {
-                if (currentStep < steps.length) {
-                    const step = steps[currentStep];
-                    console.log(step.message);
-                    currentStep++;
-                    setTimeout(executeStep, step.delay);
-                } else {
-                    this.finishExecution();
-                }
-            };
-            executeStep();
-        }
-
-        finishExecution() {
-            this.isRunning = false;
-            const startBtn = document.getElementById('startDeliveryBtn');
-            if (startBtn) {
-                startBtn.disabled = false;
-                startBtn.innerHTML = '<i class="bi bi-rocket-takeoff me-2"></i>开始执行投递';
-                startBtn.classList.remove('loading');
-                startBtn.classList.add('success-flash');
-                setTimeout(() => startBtn.classList.remove('success-flash'), 600);
-            }
-        }
-
-        // 处理登录
-        async handleLogin() {
-            if (!this.validateRequiredFields()) {
-                CommonUtils.showAlertModal('验证失败', '请先完善必填项');
-                return;
-            }
-
-            this.updateButtonState('loginBtn', 'loginStatus', '执行中...', true);
-
-            try {
-                const config = this.getCurrentConfig();
-                const response = await fetch('/api/boss/task/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    this.taskStates.loginTaskId = result.taskId;
-                    CommonUtils.showToast('Boss登录任务已提交');
-                    // 启动状态轮询
-                    this.startStatusPolling();
-                } else {
-                    this.updateButtonState('loginBtn', 'loginStatus', '登录失败', false, 'danger');
-                    CommonUtils.showToast(result.message || '登录失败', 'danger');
-                }
-            } catch (error) {
-                this.updateButtonState('loginBtn', 'loginStatus', '登录失败', false, 'danger');
-                CommonUtils.showToast('登录接口调用失败: ' + error.message, 'danger');
-            }
-        }
-
-        // 处理采集
-        async handleCollect() {
-            if (!this.isLoggedIn()) {
-                CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
-                return;
-            }
-
-            this.updateButtonState('collectBtn', 'collectStatus', '采集中...', true);
-
-            try {
-                const config = this.getCurrentConfig();
-                const response = await fetch('/api/boss/task/collect', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    this.taskStates.collectTaskId = result.taskId;
-                    CommonUtils.showToast('Boss采集任务已提交');
-                    // 启动状态轮询（如果未启动）
-                    this.startStatusPolling();
-                } else {
-                    this.updateButtonState('collectBtn', 'collectStatus', '采集失败', false, 'danger');
-                    CommonUtils.showToast(result.message || '采集失败', 'danger');
-                }
-            } catch (error) {
-                this.updateButtonState('collectBtn', 'collectStatus', '采集失败', false, 'danger');
-                CommonUtils.showToast('采集接口调用失败: ' + error.message, 'danger');
-            }
-        }
-
-        // 处理过滤
-        async handleFilter() {
-            if (!this.isLoggedIn()) {
-                CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
-                return;
-            }
-
-            this.updateButtonState('filterBtn', 'filterStatus', '过滤中...', true);
-
-            try {
-                const config = this.getCurrentConfig();
-                const request = {
-                    collectTaskId: this.taskStates.collectTaskId,
-                    config: config
-                };
-
-                const response = await fetch('/api/boss/task/filter', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(request)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    this.taskStates.filterTaskId = result.taskId;
-                    CommonUtils.showToast('Boss过滤任务已提交');
-                    // 启动状态轮询（如果未启动）
-                    this.startStatusPolling();
-                } else {
-                    this.updateButtonState('filterBtn', 'filterStatus', '过滤失败', false, 'danger');
-                    CommonUtils.showToast(result.message || '过滤失败', 'danger');
-                }
-            } catch (error) {
-                this.updateButtonState('filterBtn', 'filterStatus', '过滤失败', false, 'danger');
-                CommonUtils.showToast('过滤接口调用失败: ' + error.message, 'danger');
-            }
-        }
-
-        // 处理投递
-        async handleApply() {
-            if (!this.isLoggedIn()) {
-                CommonUtils.showAlertModal('操作提示', '请先完成登录步骤');
-                return;
-            }
-
-            CommonUtils.showConfirmModal(
-                '投递确认',
-                '是否执行实际投递？\n点击"确定"将真实投递简历\n点击"取消"将仅模拟投递',
-                () => this.executeApply(true),
-                () => this.executeApply(false)
-            );
-        }
-
-        // 执行投递
-        async executeApply(enableActualDelivery) {
-            this.updateButtonState('deliverBtn', 'deliverStatus', '投递中...', true);
-
-            try {
-                const config = this.getCurrentConfig();
-                const request = {
-                    filterTaskId: this.taskStates.filterTaskId,
-                    config: config,
-                    enableActualDelivery: enableActualDelivery
-                };
-
-                const response = await fetch('/api/boss/task/deliver', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(request)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    this.taskStates.applyTaskId = result.taskId;
-                    const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
-                    CommonUtils.showToast(`Boss${deliveryType}任务已提交`);
-                    // 启动状态轮询（如果未启动）
-                    this.startStatusPolling();
-                } else {
-                    this.updateButtonState('deliverBtn', 'deliverStatus', '投递失败', false, 'danger');
-                    CommonUtils.showToast(result.message || '投递失败', 'danger');
-                }
-            } catch (error) {
-                this.updateButtonState('deliverBtn', 'deliverStatus', '投递失败', false, 'danger');
-                CommonUtils.showToast('投递接口调用失败: ' + error.message, 'danger');
-            }
+            return isValid && this.validateSalaryRange();
         }
 
         // 获取当前配置
@@ -1080,222 +867,6 @@
                 checkStateOwned: document.getElementById('checkStateOwnedCheckBox')?.checked || false,
                 deadStatus: this.hrStatusTagsInput ? this.hrStatusTagsInput.getTags() : []
             };
-        }
-
-        // 更新按钮状态
-        updateButtonState(buttonId, statusId, statusText, isLoading, statusType = 'warning') {
-            const button = document.getElementById(buttonId);
-            const status = document.getElementById(statusId);
-
-            if (button) {
-                button.disabled = isLoading;
-            }
-
-            if (status) {
-                status.textContent = statusText;
-                const statusClasses = {
-                    'warning': 'badge bg-warning text-dark ms-2',
-                    'success': 'badge bg-success text-white ms-2',
-                    'danger': 'badge bg-danger text-white ms-2',
-                    'info': 'badge bg-info text-white ms-2',
-                    'default': 'badge bg-light text-dark ms-2'
-                };
-                status.className = statusClasses[statusType] || statusClasses['default'];
-            }
-        }
-
-        // 启用下一步按钮
-        enableNextStep(buttonId, statusId, statusText) {
-            const button = document.getElementById(buttonId);
-            const status = document.getElementById(statusId);
-
-            if (button) {
-                button.disabled = false;
-            }
-
-            if (status) {
-                status.textContent = statusText;
-                status.className = 'badge bg-info text-dark ms-2';
-            }
-        }
-
-        // 重置任务流程
-        resetTaskFlow() {
-            CommonUtils.showConfirmModal(
-                '重置确认',
-                '确定要重置任务流程吗？这将清除所有任务状态。',
-                () => {
-                    this.taskStates = {
-                        loginTaskId: null,
-                        collectTaskId: null,
-                        filterTaskId: null,
-                        applyTaskId: null
-                    };
-
-                    this.stopStatusPolling();
-
-                    this.updateButtonState('loginBtn', 'loginStatus', '待执行', false, 'default');
-                    this.updateButtonState('collectBtn', 'collectStatus', '等待登录', true, 'default');
-                    this.updateButtonState('filterBtn', 'filterStatus', '等待登录', true, 'default');
-                    this.updateButtonState('deliverBtn', 'deliverStatus', '等待登录', true, 'default');
-
-                    document.getElementById('collectBtn').disabled = true;
-                    document.getElementById('filterBtn').disabled = true;
-                    document.getElementById('deliverBtn').disabled = true;
-
-                    CommonUtils.showToast('任务流程已重置', 'info');
-                }
-            );
-        }
-
-        // 启动状态轮询
-        startStatusPolling() {
-            if (this.statusPollingInterval) {
-                return; // 已经在轮询中
-            }
-            
-            console.log('Boss: 启动任务状态轮询');
-            this.statusPollingInterval = setInterval(() => {
-                this.fetchAllTaskStatus();
-            }, 2000); // 每2秒轮询一次
-            
-            // 立即执行一次
-            this.fetchAllTaskStatus();
-        }
-
-        // 停止状态轮询
-        stopStatusPolling() {
-            if (this.statusPollingInterval) {
-                console.log('Boss: 停止任务状态轮询');
-                clearInterval(this.statusPollingInterval);
-                this.statusPollingInterval = null;
-            }
-        }
-
-        // 检查是否已登录（基于最新的任务状态缓存）
-        isLoggedIn() {
-            // 优先检查缓存的任务状态
-            if (this.latestTaskStatus) {
-                const loginStatus = this.latestTaskStatus.login;
-                // 后端返回的字段是 status，不是 state
-                const state = loginStatus?.status || loginStatus?.state;
-                if (loginStatus && state === 'SUCCESS') {
-                    return true;
-                }
-            }
-            
-            // 兼容：检查UI状态（处理app.js已更新UI但本地状态未同步的情况）
-            const loginStatusEl = document.getElementById('loginStatus');
-            if (loginStatusEl) {
-                const statusText = loginStatusEl.textContent.trim();
-                // 如果状态文本包含"成功"或"完成"，也认为已登录
-                if (statusText.includes('成功') || statusText.includes('完成') || statusText.includes('登录状态正常')) {
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        // 查询所有任务状态
-        async fetchAllTaskStatus() {
-            try {
-                const response = await fetch('/api/tasks/status');
-                if (!response.ok) return;
-                
-                const result = await response.json();
-                if (!result) return;
-                
-                // 后端返回的是扁平结构：{ "BOSS_ZHIPIN_LOGIN": {...}, "BOSS_ZHIPIN_COLLECT": {...}, ... }
-                // 需要转换为前端期望的嵌套结构
-                const bossStatus = {
-                    login: result['BOSS_ZHIPIN_LOGIN'],
-                    collect: result['BOSS_ZHIPIN_COLLECT'],
-                    filter: result['BOSS_ZHIPIN_FILTER'],
-                    deliver: result['BOSS_ZHIPIN_DELIVER']
-                };
-                
-                console.log('Boss: 任务状态数据（转换后）:', bossStatus);
-                
-                // 缓存最新的任务状态
-                this.latestTaskStatus = bossStatus;
-                
-                this.updateTaskStatusUI(bossStatus);
-                
-            } catch (error) {
-                console.warn('Boss: 查询任务状态失败:', error);
-            }
-        }
-
-        // 更新任务状态UI
-        updateTaskStatusUI(statusData) {
-            // 更新登录任务状态
-            if (statusData.login) {
-                this.updateTaskUI('login', statusData.login);
-            }
-            
-            // 更新采集任务状态
-            if (statusData.collect) {
-                this.updateTaskUI('collect', statusData.collect);
-            }
-            
-            // 更新过滤任务状态
-            if (statusData.filter) {
-                this.updateTaskUI('filter', statusData.filter);
-            }
-            
-            // 更新投递任务状态
-            if (statusData.deliver) {
-                this.updateTaskUI('deliver', statusData.deliver);
-            }
-        }
-
-        // 更新单个任务的UI
-        updateTaskUI(taskType, taskStatus) {
-            const buttonMap = {
-                'login': { btn: 'loginBtn', status: 'loginStatus' },
-                'collect': { btn: 'collectBtn', status: 'collectStatus' },
-                'filter': { btn: 'filterBtn', status: 'filterStatus' },
-                'deliver': { btn: 'deliverBtn', status: 'deliverStatus' }
-            };
-            
-            const uiElements = buttonMap[taskType];
-            if (!uiElements) return;
-            
-            // 后端返回的字段是 status，不是 state
-            // 状态值：STARTED, SUCCESS, FAILURE
-            const state = taskStatus.status || taskStatus.state;
-            const message = taskStatus.message || '';
-            
-            console.log(`Boss: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
-            
-            switch (state) {
-                case 'STARTED':
-                case 'RUNNING':
-                    this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true, 'warning');
-                    break;
-                case 'SUCCESS':
-                    this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false, 'success');
-                    // 启用下一步
-                    if (taskType === 'login') {
-                        this.enableNextStep('collectBtn', 'collectStatus', '可开始采集');
-                        this.enableNextStep('filterBtn', 'filterStatus', '可开始过滤');
-                        this.enableNextStep('deliverBtn', 'deliverStatus', '可开始投递');
-                    }
-                    // 如果所有任务都完成，停止轮询
-                    if (taskType === 'deliver') {
-                        this.stopStatusPolling();
-                    }
-                    break;
-                case 'FAILED':
-                case 'FAILURE':
-                    this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false, 'danger');
-                    this.stopStatusPolling();
-                    break;
-                case 'PENDING':
-                    // 待执行状态，保持默认
-                    break;
-            }
         }
 
         // 加载Boss字典数据

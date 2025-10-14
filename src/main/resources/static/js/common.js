@@ -120,7 +120,15 @@ class CommonUtils {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
+
+    // 显示确认对话框（简化版，兼容旧代码）
+    static showConfirm(message, onConfirm, onCancel) {
+        return this.showConfirmModal('确认操作', message, onConfirm, onCancel);
+    }
 }
+
+// 导出到全局
+window.CommonUtils = CommonUtils;
 
 // 导出配置功能
 function exportConfig() {

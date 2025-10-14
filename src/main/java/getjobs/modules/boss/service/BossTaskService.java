@@ -146,6 +146,8 @@ public class BossTaskService {
             result.setJobCount(allJobDTOS.size());
             result.setJobs(allJobDTOS);
             String message = String.format("成功采集到 %d 个岗位，保存到数据库 %d 个", allJobDTOS.size(), savedCount);
+            // TODO 岗位统计逻辑未实现，暂时仅提示采集完成
+            message = "岗位采集完成";
             result.setMessage(message);
             result.setTimestamp(new Date());
 

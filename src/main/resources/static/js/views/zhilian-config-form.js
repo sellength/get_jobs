@@ -2,14 +2,7 @@
 class ZhilianConfigForm {
     constructor() {
         this.config = {};
-        this.taskStates = {
-            loginTaskId: null,
-            collectTaskId: null,
-            filterTaskId: null,
-            applyTaskId: null
-        };
-        this.statusPollingInterval = null; // 状态轮询定时器
-        this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
+        this.taskExecutor = null; // 任务执行控制器
         this.init();
     }
 
@@ -17,8 +10,23 @@ class ZhilianConfigForm {
         this.initializeTooltips();
         this.bindEvents();
         this.loadDataSequentially();
-        // 初始化时启动状态轮询，确保能及时获取到登录状态
-        this.startStatusPolling();
+        // 初始化任务执行控制器
+        this.initTaskExecutor();
+    }
+    
+    initTaskExecutor() {
+        // 创建任务执行控制器实例
+        this.taskExecutor = new TaskExecutor(
+            'zhilian',
+            '/api/zhilian',
+            'zhilian',
+            this, // configProvider
+            {
+                showToast: this.showToast.bind(this),
+                showAlertModal: this.showAlertModal.bind(this),
+                showConfirmModal: this.showConfirmModal.bind(this)
+            }
+        );
     }
 
     initializeTooltips() {
@@ -31,12 +39,6 @@ class ZhilianConfigForm {
     bindEvents() {
         document.getElementById('zhilianSaveConfigBtn')?.addEventListener('click', () => this.handleSaveConfig());
         document.getElementById('zhilianBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
-
-        document.getElementById('zhilianLoginBtn')?.addEventListener('click', () => this.handleLogin());
-        document.getElementById('zhilianCollectBtn')?.addEventListener('click', () => this.handleCollect());
-        document.getElementById('zhilianFilterBtn')?.addEventListener('click', () => this.handleFilter());
-        document.getElementById('zhilianApplyBtn')?.addEventListener('click', () => this.handleApply());
-        document.getElementById('zhilianResetTasksBtn')?.addEventListener('click', () => this.resetTaskFlow());
 
         this.bindFormValidation();
         this.bindAutoSave();
@@ -715,110 +717,6 @@ class ZhilianConfigForm {
             .finally(() => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-database me-2"></i>数据库备份'; } });
     }
 
-    async handleLogin() {
-        if (!this.validateRequiredFields()) { this.showAlertModal('验证失败', '请先完善必填项'); return; }
-        this.updateButtonState('zhilianLoginBtn', 'zhilianLoginStatus', '执行中...', true);
-        try {
-            const response = await fetch('/api/zhilian/task/login', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.getCurrentConfig())
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.loginTaskId = result.taskId;
-                this.showToast('智联登录任务已提交');
-                // 启动状态轮询
-                this.startStatusPolling();
-            } else {
-                this.updateButtonState('zhilianLoginBtn', 'zhilianLoginStatus', '登录失败', false);
-                this.showToast(result.message || '登录失败', 'danger');
-            }
-        } catch (e) {
-            this.updateButtonState('zhilianLoginBtn', 'zhilianLoginStatus', '登录失败', false);
-            this.showToast('登录接口调用失败: ' + e.message, 'danger');
-        }
-    }
-
-    handleManualLogin() {
-        this.taskStates.loginTaskId = 'manual_login_' + Date.now();
-        this.updateButtonState('zhilianLoginBtn', 'zhilianLoginStatus', '登录成功', false);
-        this.enableNextStep('zhilianCollectBtn', 'zhilianCollectStatus', '可开始采集');
-        this.enableNextStep('zhilianFilterBtn', 'zhilianFilterStatus', '可开始过滤');
-        this.enableNextStep('zhilianApplyBtn', 'zhilianApplyStatus', '可开始投递');
-        this.showToast('已手动标记为登录状态', 'success');
-    }
-
-    async handleCollect() {
-        if (!this.isLoggedIn()) { this.showAlertModal('操作提示', '请先完成登录步骤'); return; }
-        this.updateButtonState('zhilianCollectBtn', 'zhilianCollectStatus', '采集中...', true);
-        try {
-            const response = await fetch('/api/zhilian/task/collect', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.getCurrentConfig())
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.collectTaskId = result.taskId;
-                this.showToast('智联采集任务已提交');
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
-            } else {
-                this.updateButtonState('zhilianCollectBtn', 'zhilianCollectStatus', '采集失败', false);
-                this.showToast(result.message || '采集失败', 'danger');
-            }
-        } catch (e) {
-            this.updateButtonState('zhilianCollectBtn', 'zhilianCollectStatus', '采集失败', false);
-            this.showToast('采集接口调用失败: ' + e.message, 'danger');
-        }
-    }
-
-    async handleFilter() {
-        if (!this.isLoggedIn()) { this.showAlertModal('操作提示', '请先完成登录步骤'); return; }
-        this.updateButtonState('zhilianFilterBtn', 'zhilianFilterStatus', '过滤中...', true);
-        try {
-            const request = { collectTaskId: this.taskStates.collectTaskId, config: this.getCurrentConfig() };
-            const response = await fetch('/api/zhilian/task/filter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.filterTaskId = result.taskId;
-                this.showToast('智联过滤任务已提交');
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
-            } else {
-                this.updateButtonState('zhilianFilterBtn', 'zhilianFilterStatus', '过滤失败', false);
-                this.showToast(result.message || '过滤失败', 'danger');
-            }
-        } catch (e) {
-            this.updateButtonState('zhilianFilterBtn', 'zhilianFilterStatus', '过滤失败', false);
-            this.showToast('过滤接口调用失败: ' + e.message, 'danger');
-        }
-    }
-
-    async handleApply() {
-        if (!this.isLoggedIn()) { this.showAlertModal('操作提示', '请先完成登录步骤'); return; }
-        this.showConfirmModal('投递确认', '是否执行实际投递？\n点击"确定"将真实投递简历\n点击"取消"将仅模拟投递', () => this.executeApply(true), () => this.executeApply(false));
-    }
-
-    async executeApply(enableActualDelivery) {
-        this.updateButtonState('zhilianApplyBtn', 'zhilianApplyStatus', '投递中...', true);
-        try {
-            const request = { filterTaskId: this.taskStates.filterTaskId, config: this.getCurrentConfig(), enableActualDelivery };
-            const response = await fetch('/api/zhilian/task/deliver', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.applyTaskId = result.taskId;
-                const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
-                this.showToast(`智联${deliveryType}任务已提交`);
-                // 启动状态轮询（如果未启动）
-                this.startStatusPolling();
-            } else {
-                this.updateButtonState('zhilianApplyBtn', 'zhilianApplyStatus', '投递失败', false);
-                this.showToast(result.message || '投递失败', 'danger');
-            }
-        } catch (e) {
-            this.updateButtonState('zhilianApplyBtn', 'zhilianApplyStatus', '投递失败', false);
-            this.showToast('投递接口调用失败: ' + e.message, 'danger');
-        }
-    }
-
     validateRequiredFields() {
         const required = [
             'zhilianKeywordsField',
@@ -836,187 +734,6 @@ class ZhilianConfigForm {
             else { if (!this.validateField(field)) ok = false; }
         });
         return ok;
-    }
-
-    updateButtonState(buttonId, statusId, statusText, isLoading) {
-        const button = document.getElementById(buttonId);
-        const status = document.getElementById(statusId);
-        if (button) button.disabled = isLoading;
-        if (status) {
-            status.textContent = statusText;
-            status.className = isLoading ? 'badge bg-warning text-dark ms-2' : 'badge bg-success text-white ms-2';
-        }
-    }
-
-    enableNextStep(buttonId, statusId, statusText) {
-        const button = document.getElementById(buttonId);
-        const status = document.getElementById(statusId);
-        if (button) button.disabled = false;
-        if (status) { status.textContent = statusText; status.className = 'badge bg-info text-white ms-2'; }
-    }
-
-    resetTaskFlow() {
-        this.showConfirmModal('重置确认', '确定要重置任务流程吗？这将清除所有任务状态。', () => {
-            this.taskStates = { loginTaskId: null, collectTaskId: null, filterTaskId: null, applyTaskId: null };
-            this.stopStatusPolling();
-            this.updateButtonState('zhilianLoginBtn', 'zhilianLoginStatus', '待执行', false);
-            this.updateButtonState('zhilianCollectBtn', 'zhilianCollectStatus', '等待登录', true);
-            this.updateButtonState('zhilianFilterBtn', 'zhilianFilterStatus', '等待登录', true);
-            this.updateButtonState('zhilianApplyBtn', 'zhilianApplyStatus', '等待登录', true);
-            const cb = id => { const el = document.getElementById(id); if (el) el.disabled = true; };
-            cb('zhilianCollectBtn'); cb('zhilianFilterBtn'); cb('zhilianApplyBtn');
-            this.showToast('任务流程已重置', 'info');
-        });
-    }
-
-    // 启动状态轮询
-    startStatusPolling() {
-        if (this.statusPollingInterval) {
-            return; // 已经在轮询中
-        }
-        
-        console.log('智联招聘: 启动任务状态轮询');
-        this.statusPollingInterval = setInterval(() => {
-            this.fetchAllTaskStatus();
-        }, 2000); // 每2秒轮询一次
-        
-        // 立即执行一次
-        this.fetchAllTaskStatus();
-    }
-
-    // 停止状态轮询
-    stopStatusPolling() {
-        if (this.statusPollingInterval) {
-            console.log('智联招聘: 停止任务状态轮询');
-            clearInterval(this.statusPollingInterval);
-            this.statusPollingInterval = null;
-        }
-    }
-
-    // 检查是否已登录（基于最新的任务状态缓存）
-    isLoggedIn() {
-        // 优先检查缓存的任务状态
-        if (this.latestTaskStatus) {
-            const loginStatus = this.latestTaskStatus.login;
-            // 后端返回的字段是 status，不是 state
-            const state = loginStatus?.status || loginStatus?.state;
-            if (loginStatus && state === 'SUCCESS') {
-                return true;
-            }
-        }
-        
-        // 兼容：检查UI状态（处理app.js已更新UI但本地状态未同步的情况）
-        const loginStatusEl = document.getElementById('zhilianLoginStatus');
-        if (loginStatusEl) {
-            const statusText = loginStatusEl.textContent.trim();
-            // 如果状态文本包含"成功"或"完成"，也认为已登录
-            if (statusText.includes('成功') || statusText.includes('完成') || statusText.includes('登录状态正常')) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    // 查询所有任务状态
-    async fetchAllTaskStatus() {
-        try {
-            const response = await fetch('/api/tasks/status');
-            if (!response.ok) return;
-            
-            const result = await response.json();
-            if (!result) return;
-            
-            // 后端返回的是扁平结构：{ "ZHILIAN_ZHAOPIN_LOGIN": {...}, "ZHILIAN_ZHAOPIN_COLLECT": {...}, ... }
-            // 需要转换为前端期望的嵌套结构
-            const zhilianStatus = {
-                login: result['ZHILIAN_ZHAOPIN_LOGIN'],
-                collect: result['ZHILIAN_ZHAOPIN_COLLECT'],
-                filter: result['ZHILIAN_ZHAOPIN_FILTER'],
-                deliver: result['ZHILIAN_ZHAOPIN_DELIVER']
-            };
-            
-            console.log('智联招聘: 任务状态数据（转换后）:', zhilianStatus);
-            
-            // 缓存最新的任务状态
-            this.latestTaskStatus = zhilianStatus;
-            
-            this.updateTaskStatusUI(zhilianStatus);
-            
-        } catch (error) {
-            console.warn('智联招聘: 查询任务状态失败:', error);
-        }
-    }
-
-    // 更新任务状态UI
-    updateTaskStatusUI(statusData) {
-        // 更新登录任务状态
-        if (statusData.login) {
-            this.updateTaskUI('login', statusData.login);
-        }
-        
-        // 更新采集任务状态
-        if (statusData.collect) {
-            this.updateTaskUI('collect', statusData.collect);
-        }
-        
-        // 更新过滤任务状态
-        if (statusData.filter) {
-            this.updateTaskUI('filter', statusData.filter);
-        }
-        
-        // 更新投递任务状态
-        if (statusData.deliver) {
-            this.updateTaskUI('deliver', statusData.deliver);
-        }
-    }
-
-    // 更新单个任务的UI
-    updateTaskUI(taskType, taskStatus) {
-        const buttonMap = {
-            'login': { btn: 'zhilianLoginBtn', status: 'zhilianLoginStatus' },
-            'collect': { btn: 'zhilianCollectBtn', status: 'zhilianCollectStatus' },
-            'filter': { btn: 'zhilianFilterBtn', status: 'zhilianFilterStatus' },
-            'deliver': { btn: 'zhilianApplyBtn', status: 'zhilianApplyStatus' }
-        };
-        
-        const uiElements = buttonMap[taskType];
-        if (!uiElements) return;
-        
-        // 后端返回的字段是 status，不是 state
-        // 状态值：STARTED, SUCCESS, FAILURE
-        const state = taskStatus.status || taskStatus.state;
-        const message = taskStatus.message || '';
-        
-        console.log(`智联招聘: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
-        
-        switch (state) {
-            case 'STARTED':
-            case 'RUNNING':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '执行中...', true);
-                break;
-            case 'SUCCESS':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false);
-                // 启用下一步
-                if (taskType === 'login') {
-                    this.enableNextStep('zhilianCollectBtn', 'zhilianCollectStatus', '可开始采集');
-                    this.enableNextStep('zhilianFilterBtn', 'zhilianFilterStatus', '可开始过滤');
-                    this.enableNextStep('zhilianApplyBtn', 'zhilianApplyStatus', '可开始投递');
-                }
-                // 如果所有任务都完成，停止轮询
-                if (taskType === 'deliver') {
-                    this.stopStatusPolling();
-                }
-                break;
-            case 'FAILED':
-            case 'FAILURE':
-                this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false);
-                this.stopStatusPolling();
-                break;
-            case 'PENDING':
-                // 待执行状态，保持默认
-                break;
-        }
     }
 
     showToast(message, variant = 'success') {

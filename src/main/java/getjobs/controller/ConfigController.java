@@ -134,7 +134,14 @@ public class ConfigController {
         e.setRecommendJobs(Boolean.TRUE.equals(dto.getRecommendJobs()));
         e.setCheckStateOwned(Boolean.TRUE.equals(dto.getCheckStateOwned()));
         e.setCustomCityCode(dto.getCustomCityCode());
-        e.setDeadStatus(dto.getDeadStatus());
+        
+        // 优先使用前端传来的bossHrStatusKeywords字段，兼容旧的deadStatus字段
+        if (dto.getBossHrStatusKeywords() != null && !dto.getBossHrStatusKeywords().trim().isEmpty()) {
+            e.setDeadStatus(split(dto.getBossHrStatusKeywords()));
+        } else if (dto.getDeadStatus() != null) {
+            e.setDeadStatus(dto.getDeadStatus());
+        }
+        
         return e;
     }
 

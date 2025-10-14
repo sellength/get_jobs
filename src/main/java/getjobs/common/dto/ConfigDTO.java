@@ -60,6 +60,9 @@ public class ConfigDTO {
 
     // 其他列表型配置
     private List<String> deadStatus;
+    
+    // HR状态过滤关键词（逗号分隔字符串，从前端表单接收）
+    private String bossHrStatusKeywords;
 
     // ------------ 单例加载 ------------
     private static volatile ConfigDTO instance;
@@ -147,6 +150,8 @@ public class ConfigDTO {
         // }
         if (entity.getDeadStatus() != null) {
             dto.setDeadStatus(entity.getDeadStatus());
+            // 同时转换为逗号分隔的字符串供前端使用
+            dto.setBossHrStatusKeywords(String.join(",", entity.getDeadStatus()));
         }
 
         // 期望薪资处理

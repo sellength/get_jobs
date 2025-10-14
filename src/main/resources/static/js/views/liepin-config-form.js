@@ -3,14 +3,7 @@ class LiepinConfigForm {
     constructor() {
         this.config = {};
         this.isRunning = false;
-        this.taskStates = {
-            loginTaskId: null,
-            collectTaskId: null,
-            filterTaskId: null,
-            applyTaskId: null
-        };
-        this.statusPollingInterval = null; // 状态轮询定时器
-        this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
+        this.taskExecutor = null; // 任务执行控制器
         this.init();
     }
 
@@ -18,6 +11,23 @@ class LiepinConfigForm {
         this.initializeTooltips();
         this.bindEvents();
         this.loadDataSequentially();
+        // 初始化任务执行控制器
+        this.initTaskExecutor();
+    }
+    
+    initTaskExecutor() {
+        // 创建任务执行控制器实例
+        this.taskExecutor = new TaskExecutor(
+            'liepin',
+            '/api/liepin',
+            'liepin',
+            this, // configProvider
+            {
+                showToast: this.showToast.bind(this),
+                showAlertModal: this.showAlertModal.bind(this),
+                showConfirmModal: this.showConfirmModal.bind(this)
+            }
+        );
     }
 
     initializeTooltips() {
@@ -30,11 +40,6 @@ class LiepinConfigForm {
     bindEvents() {
         document.getElementById('liepinSaveConfigBtn')?.addEventListener('click', () => this.handleSaveConfig());
         document.getElementById('liepinBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
-        document.getElementById('liepinLoginBtn')?.addEventListener('click', () => this.handleLogin());
-        document.getElementById('liepinCollectBtn')?.addEventListener('click', () => this.handleCollect());
-        document.getElementById('liepinFilterBtn')?.addEventListener('click', () => this.handleFilter());
-        document.getElementById('liepinApplyBtn')?.addEventListener('click', () => this.handleApply());
-        document.getElementById('liepinResetTasksBtn')?.addEventListener('click', () => this.resetTaskFlow());
 
         this.bindAutoSave();
     }
@@ -616,97 +621,6 @@ class LiepinConfigForm {
             });
     }
 
-    async handleLogin() {
-        try {
-            const response = await fetch('/api/liepin/task/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.getCurrentConfig())
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.loginTaskId = result.taskId;
-                this.showToast('猎聘登录任务已提交');
-            } else {
-                this.showToast(result.message || '登录失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('登录接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    // 手动确认登录 - 由app.js统一处理UI状态
-    handleManualLogin() {
-        // 标记任务ID，供其他逻辑使用
-        this.taskStates.loginTaskId = 'manual_login_' + Date.now();
-        // UI状态更新由app.js的TaskStatusUpdater统一处理
-        this.showToast('猎聘已标记为登录状态');
-    }
-
-    async handleCollect() {
-        try {
-            const response = await fetch('/api/liepin/task/collect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.getCurrentConfig())
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.collectTaskId = result.taskId;
-                this.showToast('猎聘采集任务已提交');
-            } else {
-                this.showToast(result.message || '采集失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('采集接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    async handleFilter() {
-        try {
-            const request = { collectTaskId: this.taskStates.collectTaskId, config: this.getCurrentConfig() };
-            const response = await fetch('/api/liepin/task/filter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.filterTaskId = result.taskId;
-                this.showToast('猎聘过滤任务已提交');
-            } else {
-                this.showToast(result.message || '过滤失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('过滤接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    handleApply() {
-        this.showConfirmModal('投递确认', '是否执行实际投递？', () => this.executeApply(true), () => this.executeApply(false));
-    }
-
-    async executeApply(enableActualDelivery) {
-        try {
-            const request = { filterTaskId: this.taskStates.filterTaskId, config: this.getCurrentConfig(), enableActualDelivery };
-            const response = await fetch('/api/liepin/task/deliver', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-            const result = await response.json();
-            if (result.success) {
-                this.taskStates.applyTaskId = result.taskId;
-                const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
-                this.showToast(`猎聘${deliveryType}任务已提交`);
-            } else {
-                this.showToast(result.message || '投递失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('投递接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
     getCurrentConfig() {
         const getMultiSelectValues = (selectId) => Array.from(document.getElementById(selectId)?.selectedOptions || []).map(o => o.value).filter(Boolean).join(',');
         return {
@@ -723,14 +637,6 @@ class LiepinConfigForm {
             blacklistKeywords: document.getElementById('liepinBlacklistKeywordsTextArea')?.value || '',
             enableAIJobMatch: document.getElementById('liepinEnableAIJobMatchCheckBox')?.checked || false
         };
-    }
-
-    resetTaskFlow() {
-        this.showConfirmModal('重置确认', '确定要重置任务流程吗？', () => {
-            // 只重置任务状态数据，UI状态由app.js的TaskStatusUpdater处理
-            this.taskStates = { loginTaskId: null, collectTaskId: null, filterTaskId: null, applyTaskId: null };
-            this.showToast('任务流程已重置', 'info');
-        });
     }
 
     showToast(message, variant = 'success') {

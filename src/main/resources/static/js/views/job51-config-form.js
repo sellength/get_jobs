@@ -3,14 +3,7 @@ class Job51ConfigForm {
     constructor() {
         this.config = {};
         this.isRunning = false;
-        this.taskStates = {
-            loginTaskId: null,
-            collectTaskId: null,
-            filterTaskId: null,
-            applyTaskId: null
-        };
-        this.statusPollingInterval = null; // 状态轮询定时器
-        this.latestTaskStatus = null; // 缓存最新的任务状态查询结果
+        this.taskExecutor = null; // 任务执行控制器
         this.init();
     }
 
@@ -19,6 +12,23 @@ class Job51ConfigForm {
         this.bindEvents();
         // 先加载字典数据，再加载配置数据，确保下拉框已准备好
         this.loadDataSequentially();
+        // 初始化任务执行控制器
+        this.initTaskExecutor();
+    }
+    
+    initTaskExecutor() {
+        // 创建任务执行控制器实例
+        this.taskExecutor = new TaskExecutor(
+            'job51',
+            '/api/job51',
+            'job51',
+            this, // configProvider
+            {
+                showToast: this.showToast.bind(this),
+                showAlertModal: this.showAlertModal.bind(this),
+                showConfirmModal: this.showConfirmModal.bind(this)
+            }
+        );
     }
 
     // 初始化工具提示
@@ -46,27 +56,6 @@ class Job51ConfigForm {
                 this.handleBackupData();
             });
         }
-
-        // 任务执行按钮
-        document.getElementById('job51LoginBtn')?.addEventListener('click', () => {
-            this.handleLogin();
-        });
-
-        document.getElementById('job51CollectBtn')?.addEventListener('click', () => {
-            this.handleCollect();
-        });
-
-        document.getElementById('job51FilterBtn')?.addEventListener('click', () => {
-            this.handleFilter();
-        });
-
-        document.getElementById('job51ApplyBtn')?.addEventListener('click', () => {
-            this.handleApply();
-        });
-
-        document.getElementById('job51ResetTasksBtn')?.addEventListener('click', () => {
-            this.resetTaskFlow();
-        });
 
         // 表单验证
         this.bindFormValidation();
@@ -887,135 +876,6 @@ class Job51ConfigForm {
         });
     }
 
-    // 处理登录
-    async handleLogin() {
-        if (!this.validateRequiredFields()) {
-            this.showAlertModal('验证失败', '请先完善必填项');
-            return;
-        }
-        
-        try {
-            const config = this.getCurrentConfig();
-            const response = await fetch('/api/job51/task/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                this.taskStates.loginTaskId = result.taskId;
-                this.showToast('51job登录任务已提交');
-            } else {
-                this.showToast(result.message || '登录失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('登录接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    // 手动确认登录 - UI状态由app.js统一处理
-    handleManualLogin() {
-        this.taskStates.loginTaskId = 'manual_login_' + Date.now();
-        // UI状态更新由app.js的TaskStatusUpdater统一处理
-        this.showToast('已手动标记为登录状态', 'success');
-    }
-
-    // 处理采集
-    async handleCollect() {
-        
-        try {
-            const config = this.getCurrentConfig();
-            const response = await fetch('/api/job51/task/collect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                this.taskStates.collectTaskId = result.taskId;
-                this.showToast('51job采集任务已提交');
-            } else {
-                this.showToast(result.message || '采集失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('采集接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    // 处理过滤
-    async handleFilter() {
-        
-        try {
-            const config = this.getCurrentConfig();
-            const request = {
-                collectTaskId: this.taskStates.collectTaskId,
-                config: config
-            };
-
-            const response = await fetch('/api/job51/task/filter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                this.taskStates.filterTaskId = result.taskId;
-                this.showToast('51job过滤任务已提交');
-            } else {
-                this.showToast(result.message || '过滤失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('过滤接口调用失败: ' + error.message, 'danger');
-        }
-    }
-
-    // 处理投递
-    async handleApply() {
-
-        this.showConfirmModal(
-            '投递确认',
-            '是否执行实际投递？\n点击"确定"将真实投递简历\n点击"取消"将仅模拟投递',
-            () => this.executeApply(true),
-            () => this.executeApply(false)
-        );
-    }
-
-    // 执行投递
-    async executeApply(enableActualDelivery) {
-        
-        try {
-            const config = this.getCurrentConfig();
-            const request = {
-                filterTaskId: this.taskStates.filterTaskId,
-                config: config,
-                enableActualDelivery: enableActualDelivery
-            };
-
-            const response = await fetch('/api/job51/task/deliver', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                this.taskStates.applyTaskId = result.taskId;
-                const deliveryType = enableActualDelivery ? '实际投递' : '模拟投递';
-                this.showToast(`51job${deliveryType}任务已提交`);
-            } else {
-                this.showToast(result.message || '投递失败', 'danger');
-            }
-        } catch (error) {
-            this.showToast('投递接口调用失败: ' + error.message, 'danger');
-        }
-    }
 
     // 获取当前配置
     getCurrentConfig() {
@@ -1073,24 +933,6 @@ class Job51ConfigForm {
         return isValid;
     }
 
-
-    // 重置任务流程
-    resetTaskFlow() {
-        this.showConfirmModal(
-            '重置确认',
-            '确定要重置任务流程吗？这将清除所有任务状态。',
-            () => {
-                // 只重置任务状态数据，UI状态由app.js的TaskStatusUpdater处理
-                this.taskStates = {
-                    loginTaskId: null,
-                    collectTaskId: null,
-                    filterTaskId: null,
-                    applyTaskId: null
-                };
-                this.showToast('任务流程已重置', 'info');
-            }
-        );
-    }
 
     // 显示全局Toast
     showToast(message, variant = 'success') {
